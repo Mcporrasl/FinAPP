@@ -1,0 +1,240 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isMemberOfFamily(familyId) {
+      return exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid));
+    }
+
+    // --- User Validation ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'currency', 'createdAt'])
+        && data.uid == request.auth.uid
+        && data.name is string && data.name.size() <= 100
+        && data.currency is string && data.currency.size() <= 10
+        && data.createdAt is string
+        && (!data.keys().hasAny(['activeAvatarId']) || (data.activeAvatarId is string && data.activeAvatarId.size() <= 100))
+        && (!data.keys().hasAny(['isFamilyMode']) || data.isFamilyMode is bool)
+        && (!data.keys().hasAny(['hasCompletedOnboarding']) || data.hasCompletedOnboarding is bool);
+    }
+    function isValidUserUpdate(data) {
+      return data.uid == existing().uid
+        && data.createdAt == existing().createdAt
+        && (!data.keys().hasAny(['name']) || (data.name is string && data.name.size() <= 100))
+        && (!data.keys().hasAny(['currency']) || (data.currency is string && data.currency.size() <= 10))
+        && (!data.keys().hasAny(['activeAvatarId']) || (data.activeAvatarId is string && data.activeAvatarId.size() <= 100))
+        && (!data.keys().hasAny(['isFamilyMode']) || data.isFamilyMode is bool)
+        && (!data.keys().hasAny(['hasCompletedOnboarding']) || data.hasCompletedOnboarding is bool);
+    }
+
+    // --- Transaction Validation ---
+    function isValidTransaction(data, parentUserId) {
+      return data.keys().hasAll(['userId', 'type', 'amount', 'category', 'description', 'date', 'icon', 'createdAt'])
+        && data.userId == request.auth.uid
+        && data.userId == parentUserId
+        && data.type in ['income', 'expense']
+        && data.amount is number
+        && data.category is string && data.category.size() <= 50
+        && data.description is string && data.description.size() <= 200
+        && data.date is string && data.date.size() <= 50
+        && data.icon is string && data.icon.size() <= 50
+        && data.createdAt is string
+        && (!data.keys().hasAny(['createdBy']) || (data.createdBy is string && data.createdBy.size() <= 100))
+        && (!data.keys().hasAny(['createdByAvatar']) || (data.createdByAvatar is string && data.createdByAvatar.size() <= 500));
+    }
+    
+    // --- Goal Validation ---
+    function isValidGoal(data, parentUserId) {
+      return data.keys().hasAll(['userId', 'title', 'type', 'description', 'icon', 'currentAmount', 'targetAmount', 'completed', 'dateCreated', 'createdAt'])
+        && data.userId == request.auth.uid
+        && data.userId == parentUserId
+        && data.title is string && data.title.size() <= 100
+        && data.type in ['DEBT', 'SAVINGS']
+        && data.description is string && data.description.size() <= 500
+        && data.icon is string && data.icon.size() <= 50
+        && data.currentAmount is number && data.currentAmount >= 0
+        && data.targetAmount is number && data.targetAmount >= 0
+        && data.completed is bool
+        && data.dateCreated is string && data.dateCreated.size() <= 50
+        && data.createdAt is string;
+    }
+    function isValidGoalUpdate(data, parentUserId) {
+      return data.userId == existing().userId
+        && data.userId == parentUserId
+        && data.createdAt == existing().createdAt
+        && data.dateCreated == existing().dateCreated
+        && data.type == existing().type
+        && (!data.keys().hasAny(['title']) || (data.title is string && data.title.size() <= 100))
+        && (!data.keys().hasAny(['description']) || (data.description is string && data.description.size() <= 500))
+        && (!data.keys().hasAny(['icon']) || (data.icon is string && data.icon.size() <= 50))
+        && (!data.keys().hasAny(['currentAmount']) || (data.currentAmount is number && data.currentAmount >= 0))
+        && (!data.keys().hasAny(['targetAmount']) || (data.targetAmount is number && data.targetAmount >= 0))
+        && (!data.keys().hasAny(['completed']) || data.completed is bool);
+    }
+
+    // --- Family Data Validation ---
+    function isValidFamily(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'inviteCode', 'createdAt'])
+        && data.ownerId == request.auth.uid
+        && data.name is string && data.name.size() <= 100
+        && data.inviteCode is string && data.inviteCode.size() <= 20
+        && data.createdAt is string;
+    }
+    function isValidFamilyUpdate(data) {
+      return data.ownerId == existing().ownerId
+        && data.createdAt == existing().createdAt
+        && (!data.keys().hasAny(['name']) || (data.name is string && data.name.size() <= 100))
+        && (!data.keys().hasAny(['inviteCode']) || (data.inviteCode is string && data.inviteCode.size() <= 20));
+    }
+
+    // --- Family Member Validation ---
+    function isValidFamilyMember(data) {
+      return data.keys().hasAll(['name', 'role', 'avatarUrl', 'createdAt'])
+        && data.name is string && data.name.size() <= 100
+        && data.role in ['admin', 'member']
+        && data.avatarUrl is string && data.avatarUrl.size() <= 500
+        && data.createdAt is string;
+    }
+    function isValidFamilyMemberUpdate(data) {
+      return data.createdAt == existing().createdAt
+        && (!data.keys().hasAny(['name']) || (data.name is string && data.name.size() <= 100))
+        && (!data.keys().hasAny(['role']) || (data.role in ['admin', 'member']))
+        && (!data.keys().hasAny(['avatarUrl']) || (data.avatarUrl is string && data.avatarUrl.size() <= 500));
+    }
+
+    // --- Family Transaction Validation ---
+    function isValidFamilyTransaction(data, parentFamilyId) {
+      return data.keys().hasAll(['familyId', 'type', 'amount', 'category', 'description', 'date', 'icon', 'createdAt'])
+        && data.familyId == parentFamilyId
+        && data.type in ['income', 'expense']
+        && data.amount is number
+        && data.category is string && data.category.size() <= 50
+        && data.description is string && data.description.size() <= 200
+        && data.date is string && data.date.size() <= 50
+        && data.icon is string && data.icon.size() <= 50
+        && data.createdAt is string
+        && (!data.keys().hasAny(['createdBy']) || (data.createdBy is string && data.createdBy.size() <= 100))
+        && (!data.keys().hasAny(['createdByAvatar']) || (data.createdByAvatar is string && data.createdByAvatar.size() <= 500));
+    }
+    function isValidFamilyTransactionUpdate(data, parentFamilyId) {
+      return data.familyId == existing().familyId
+        && data.createdAt == existing().createdAt
+        && data.date == existing().date
+        && (!data.keys().hasAny(['type']) || (data.type in ['income', 'expense']))
+        && (!data.keys().hasAny(['amount']) || data.amount is number)
+        && (!data.keys().hasAny(['category']) || (data.category is string && data.category.size() <= 50))
+        && (!data.keys().hasAny(['description']) || (data.description is string && data.description.size() <= 200))
+        && (!data.keys().hasAny(['icon']) || (data.icon is string && data.icon.size() <= 50))
+        && (!data.keys().hasAny(['createdBy']) || (data.createdBy is string && data.createdBy.size() <= 100))
+        && (!data.keys().hasAny(['createdByAvatar']) || (data.createdByAvatar is string && data.createdByAvatar.size() <= 500));
+    }
+
+    // --- Family Goal Validation ---
+    function isValidFamilyGoal(data, parentFamilyId) {
+      return data.keys().hasAll(['familyId', 'title', 'type', 'description', 'icon', 'currentAmount', 'targetAmount', 'completed', 'dateCreated', 'createdAt'])
+        && data.familyId == parentFamilyId
+        && data.title is string && data.title.size() <= 100
+        && data.type in ['DEBT', 'SAVINGS']
+        && data.description is string && data.description.size() <= 500
+        && data.icon is string && data.icon.size() <= 50
+        && data.currentAmount is number && data.currentAmount >= 0
+        && data.targetAmount is number && data.targetAmount >= 0
+        && data.completed is bool
+        && data.dateCreated is string && data.dateCreated.size() <= 50
+        && data.createdAt is string;
+    }
+    function isValidFamilyGoalUpdate(data, parentFamilyId) {
+      return data.familyId == existing().familyId
+        && data.createdAt == existing().createdAt
+        && data.dateCreated == existing().dateCreated
+        && data.type == existing().type
+        && (!data.keys().hasAny(['title']) || (data.title is string && data.title.size() <= 100))
+        && (!data.keys().hasAny(['description']) || (data.description is string && data.description.size() <= 500))
+        && (!data.keys().hasAny(['icon']) || (data.icon is string && data.icon.size() <= 50))
+        && (!data.keys().hasAny(['currentAmount']) || (data.currentAmount is number && data.currentAmount >= 0))
+        && (!data.keys().hasAny(['targetAmount']) || (data.targetAmount is number && data.targetAmount >= 0))
+        && (!data.keys().hasAny(['completed']) || data.completed is bool);
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUser(incoming()) && incoming().keys().size() <= 7;
+      allow update: if (isSignedIn() && request.auth.uid == userId && isValidId(userId) 
+        && isValidUserUpdate(incoming()) 
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'currency', 'activeAvatarId', 'isFamilyMode', 'hasCompletedOnboarding']));
+      allow delete: if false;
+
+      match /transactions/{transactionId} {
+        allow read, list: if isSignedIn() && request.auth.uid == userId && (resource == null || resource.data.userId == request.auth.uid);
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(transactionId) && isValidTransaction(incoming(), userId) && incoming().keys().size() <= 10 && exists(/databases/$(database)/documents/users/$(userId));
+        allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(transactionId) && existing().userId == request.auth.uid;
+      }
+      
+      match /goals/{goalId} {
+        allow read, list: if isSignedIn() && request.auth.uid == userId && (resource == null || resource.data.userId == request.auth.uid);
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(goalId) && isValidGoal(incoming(), userId) && incoming().keys().size() == 10 && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if (isSignedIn() && request.auth.uid == userId && isValidId(goalId) 
+          && isValidGoalUpdate(incoming(), userId) 
+          && incoming().diff(existing()).affectedKeys().hasOnly(['currentAmount', 'completed', 'title', 'description', 'icon', 'targetAmount']));
+        allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(goalId) && existing().userId == request.auth.uid;
+      }
+    }
+
+    // --- Families Collection ---
+    match /families/{familyId} {
+      allow read, list: if isSignedIn() && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId));
+      allow create: if isSignedIn() && isValidId(familyId) && isValidFamily(incoming()) && incoming().keys().size() == 4;
+      allow update: if (isSignedIn() && isValidId(familyId) && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId)) 
+          && isValidFamilyUpdate(incoming()) 
+          && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'inviteCode']));
+      allow delete: if false;
+
+      match /members/{memberId} {
+         allow read, list: if isSignedIn() && (existing() == null || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid || isMemberOfFamily(familyId));
+         allow create: if isSignedIn() && isValidId(memberId) && memberId == request.auth.uid && isValidFamilyMember(incoming()) && incoming().keys().size() == 4 && exists(/databases/$(database)/documents/families/$(familyId));
+         allow update: if (isSignedIn() && isValidId(memberId) && (memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid)
+            && isValidFamilyMemberUpdate(incoming())
+            && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'avatarUrl']));
+         allow delete: if false;
+      }
+
+      match /transactions/{transactionId} {
+        allow read, list: if isSignedIn() && isMemberOfFamily(familyId) && (resource == null || resource.data.familyId == familyId);
+        allow create: if isSignedIn() && isMemberOfFamily(familyId) && isValidId(transactionId) && isValidFamilyTransaction(incoming(), familyId) && incoming().keys().size() <= 10 && exists(/databases/$(database)/documents/families/$(familyId));
+        allow update: if (isSignedIn() && isMemberOfFamily(familyId) && isValidId(transactionId)
+          && isValidFamilyTransactionUpdate(incoming(), familyId)
+          && incoming().diff(existing()).affectedKeys().hasOnly(['amount', 'description', 'icon', 'category', 'type', 'createdBy', 'createdByAvatar']));
+        allow delete: if isSignedIn() && isMemberOfFamily(familyId) && isValidId(transactionId) && existing().familyId == familyId;
+      }
+
+      match /goals/{goalId} {
+        allow read, list: if isSignedIn() && isMemberOfFamily(familyId) && (resource == null || resource.data.familyId == familyId);
+        allow create: if isSignedIn() && isMemberOfFamily(familyId) && isValidId(goalId) && isValidFamilyGoal(incoming(), familyId) && incoming().keys().size() == 10 && exists(/databases/$(database)/documents/families/$(familyId));
+        allow update: if (isSignedIn() && isMemberOfFamily(familyId) && isValidId(goalId)
+           && isValidFamilyGoalUpdate(incoming(), familyId)
+           && incoming().diff(existing()).affectedKeys().hasOnly(['currentAmount', 'completed', 'title', 'description', 'icon', 'targetAmount']));
+        allow delete: if isSignedIn() && isMemberOfFamily(familyId) && isValidId(goalId) && existing().familyId == familyId;
+      }
+    }
+  }
+}

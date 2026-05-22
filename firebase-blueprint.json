@@ -1,0 +1,145 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "activeAvatarId": { "type": "string" },
+        "currency": { "type": "string" },
+        "isFamilyMode": { "type": "boolean" },
+        "hasCompletedOnboarding": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "currency", "createdAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A financial transaction (income, needs, wants, savings)",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string" },
+        "icon": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdByAvatar": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "amount", "category", "description", "date", "icon", "createdAt"]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "A financial goal or debt",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["DEBT", "SAVINGS"] },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "currentAmount": { "type": "number" },
+        "targetAmount": { "type": "number" },
+        "completed": { "type": "boolean" },
+        "dateCreated": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "type", "description", "icon", "currentAmount", "targetAmount", "completed", "dateCreated", "createdAt"]
+    },
+    "FamilyData": {
+      "title": "FamilyData",
+      "description": "Family group details",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "inviteCode": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "inviteCode", "createdAt"]
+    },
+    "FamilyMember": {
+      "title": "FamilyMember",
+      "description": "Family group members",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "member"] },
+        "avatarUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "role", "avatarUrl", "createdAt"]
+    },
+    "FamilyTransaction": {
+      "title": "FamilyTransaction",
+      "description": "A financial transaction for the family",
+      "type": "object",
+      "properties": {
+        "familyId": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string" },
+        "icon": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdByAvatar": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["familyId", "type", "amount", "category", "description", "date", "icon", "createdAt"]
+    },
+    "FamilyGoal": {
+      "title": "FamilyGoal",
+      "description": "A financial goal for the family",
+      "type": "object",
+      "properties": {
+        "familyId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["DEBT", "SAVINGS"] },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "currentAmount": { "type": "number" },
+        "targetAmount": { "type": "number" },
+        "completed": { "type": "boolean" },
+        "dateCreated": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["familyId", "title", "type", "description", "icon", "currentAmount", "targetAmount", "completed", "dateCreated", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "User profiles and settings"
+    },
+    "users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "Transaction" },
+      "description": "Personal user transactions"
+    },
+    "users/{userId}/goals/{goalId}": {
+      "schema": { "$ref": "Goal" },
+      "description": "Personal user goals"
+    },
+    "families/{familyId}": {
+      "schema": { "$ref": "FamilyData" },
+      "description": "Family data"
+    },
+    "families/{familyId}/members/{memberId}": {
+      "schema": { "$ref": "FamilyMember" },
+      "description": "Family members"
+    },
+    "families/{familyId}/transactions/{transactionId}": {
+      "schema": { "$ref": "FamilyTransaction" },
+      "description": "Family transactions"
+    },
+    "families/{familyId}/goals/{goalId}": {
+      "schema": { "$ref": "FamilyGoal" },
+      "description": "Family goals"
+    }
+  }
+}

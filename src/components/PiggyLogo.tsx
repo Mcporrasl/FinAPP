@@ -1,0 +1,76 @@
+import React from 'react';
+import { motion } from 'motion/react';
+
+interface PiggyLogoProps {
+  className?: string;
+  size?: number;
+}
+
+export function PiggyLogo({ className = '', size = 64 }: PiggyLogoProps) {
+  return (
+    <motion.svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 100 100" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      initial={{ y: 0 }}
+      animate={{ y: [-4, 4, -4] }}
+      transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+    >
+      {/* Background Glow */}
+      <circle cx="50" cy="55" r="40" fill="#fbcfe8" opacity="0.3" filter="blur(8px)" />
+      
+      {/* Back legs */}
+      <rect x="35" y="70" width="10" height="15" rx="5" fill="#f472b6" />
+      <rect x="65" y="70" width="10" height="15" rx="5" fill="#f472b6" />
+      
+      {/* Tail */}
+      <path d="M 85 50 Q 100 40 90 30 Q 80 40 90 55" stroke="#f472b6" strokeWidth="4" strokeLinecap="round" fill="none" />
+      
+      {/* Ears */}
+      <polygon points="35,30 25,18 45,22" fill="#ec4899" />
+      <polygon points="65,30 55,20 75,22" fill="#f472b6" />
+      
+      {/* Main Body (Oval) */}
+      <ellipse cx="55" cy="50" rx="35" ry="30" fill="#fbcfe8" />
+      
+      {/* Front legs */}
+      <rect x="40" y="72" width="10" height="15" rx="5" fill="#ec4899" />
+      <rect x="70" y="72" width="10" height="15" rx="5" fill="#ec4899" />
+      
+      {/* Snout */}
+      <ellipse cx="25" cy="55" rx="10" ry="12" fill="#ec4899" />
+      <circle cx="22" cy="52" r="2" fill="#9d174d" />
+      <circle cx="22" cy="58" r="2" fill="#9d174d" />
+      
+      {/* Eye */}
+      <circle cx="40" cy="45" r="4" fill="#0f172a" />
+      <circle cx="41" cy="44" r="1.5" fill="#ffffff" />
+      
+      {/* Cheek blush */}
+      <circle cx="45" cy="55" r="5" fill="#f472b6" opacity="0.6" />
+      
+      {/* Coin slot & Coin */}
+      <path d="M 50 25 L 65 25" stroke="#ec4899" strokeWidth="3" strokeLinecap="round" />
+      <motion.circle 
+        cx="57.5" 
+        cy="15" 
+        r="6" 
+        fill="#fbbf24"
+        initial={{ y: -10, opacity: 0 }}
+        animate={{ y: 8, opacity: [0, 1, 0] }}
+        transition={{ repeat: Infinity, duration: 2, ease: "easeIn" }}
+      />
+      <motion.path 
+        d="M 57.5 11 L 57.5 19" 
+        stroke="#d97706" 
+        strokeWidth="1.5"
+        initial={{ y: -10, opacity: 0 }}
+        animate={{ y: 8, opacity: [0, 1, 0] }}
+        transition={{ repeat: Infinity, duration: 2, ease: "easeIn" }}
+      />
+    </motion.svg>
+  );
+}

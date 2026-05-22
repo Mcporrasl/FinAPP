@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Quicksand", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer utilities {
+  /* Frosted Glass Base Theme Background - updated to Super-Trendy, Cheerful Peach & Custard Cream Aura */
+  .frosted-bg {
+    background-color: #fffdf9;
+    background-image: 
+      radial-gradient(circle at 10% 20%, #fff1f2 0%, transparent 45%),
+      radial-gradient(circle at 90% 80%, #f0fdf4 0%, transparent 45%),
+      radial-gradient(circle at 50% 50%, #fef8e2 0%, transparent 100%);
+  }
+
+  /* Puffy Neo-Pop Toy-like Panels */
+  .glass-card {
+    background-color: #ffffff;
+    border: 3px solid #0f172a;
+    box-shadow: 6px 6px 0px 0px #0f172a;
+    color: #1e293b;
+  }
+
+  .glass-card-lighter {
+    background-color: #fef9c3; /* Sweet buttery yellow pop */
+    border: 3px solid #0f172a;
+    box-shadow: 5px 5px 0px 0px #0f172a;
+    color: #1e293b;
+  }
+
+  .glass-card-dark {
+    background-color: #f5f3ff; /* Sweety lilac card */
+    border: 3px solid #0f172a;
+    box-shadow: 6px 6px 0px 0px #0f172a;
+    color: #1e293b;
+  }
+
+  /* Squishy toy physics micro-interactions */
+  .squishy-press {
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .squishy-press:active {
+    transform: scale(0.94) translateY(6px);
+  }
+  
+  .bouncy-hover {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .bouncy-hover:hover {
+    transform: scale(1.03) translateY(-6px);
+  }
+  
+  .active-press {
+    transition: all 0.15s ease;
+  }
+  .active-press:active {
+    transform: scale(0.95) translateY(2px);
+  }
+
+  /* Shadow Blobs */
+  .shadow-blob-primary {
+    box-shadow: 6px 6px 0px 0px #0f172a;
+  }
+  .shadow-blob-secondary {
+    box-shadow: 6px 6px 0px 0px #0f172a;
+  }
+  
+  /* Path animation */
+  @keyframes star-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-8px) rotate(10deg); }
+  }
+  .star-animate {
+    animation: star-float 3s ease-in-out infinite;
+  }
+
+  /* Floating Piggy */
+  @keyframes piggy-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  .piggy-float {
+    animation: piggy-bounce 4s ease-in-out infinite;
+  }
+
+  .animate-bounce-slow { animation: bounce 3s infinite; }
+  .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  .animate-float { animation: piggy-bounce 3s ease-in-out infinite; }
+  
+  @keyframes wiggle-anim {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+  }
+  .animate-wiggle { animation: wiggle-anim 2s ease-in-out infinite; }
+}
