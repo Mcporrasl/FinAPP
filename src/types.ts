@@ -14,6 +14,9 @@ export interface Transaction {
   icon: string;
   createdBy?: string;
   createdByAvatar?: string;
+  createdAt?: string;
+  userId?: string;
+  familyId?: string;
 }
 
 export type GoalType = 'DEBT' | 'SAVINGS';
@@ -28,6 +31,9 @@ export interface Goal {
   targetAmount: number;
   completed: boolean;
   dateCreated: string;
+  createdAt?: string;
+  userId?: string;
+  familyId?: string;
 }
 
 export interface FamilyMember {

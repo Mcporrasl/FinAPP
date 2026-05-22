@@ -12,7 +12,7 @@ import { AuthView } from './components/AuthView';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, onSnapshot, query, deleteDoc, updateDoc, getDocs, where } from 'firebase/firestore';
 
 import { 
   TabType, 
@@ -214,6 +214,107 @@ export default function App() {
     }
   }, [userName, currency, activeAvatar, isFamilyMode, hasCompletedOnboarding, currentUser, isAuthChecking, isProfileLoaded]);
 
+  // Firestore Subscriptions
+  useEffect(() => {
+    if (!currentUser || isAuthChecking || !isProfileLoaded) return;
+
+    // Sub to Personal Transactions
+    const txRef = collection(db, 'users', currentUser.uid, 'transactions');
+    const unsubTx = onSnapshot(query(txRef), (snapshot) => {
+      const fetchedTx: Transaction[] = [];
+      snapshot.forEach(docSnap => {
+        fetchedTx.push({ id: docSnap.id, ...docSnap.data() } as Transaction);
+      });
+      // Sort by date or id falling back to keep order somewhat stable
+      fetchedTx.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      setTransactions(fetchedTx);
+    });
+
+    // Sub to Personal Goals
+    const goalsRef = collection(db, 'users', currentUser.uid, 'goals');
+    const unsubGoals = onSnapshot(query(goalsRef), (snapshot) => {
+      const fetchedGoals: Goal[] = [];
+      snapshot.forEach(docSnap => {
+        fetchedGoals.push({ id: docSnap.id, ...docSnap.data() } as Goal);
+      });
+      fetchedGoals.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+      setGoals(fetchedGoals);
+    });
+    
+    // Automatically check if user owns a family to recover it if they just logged in on a new device
+    if (isFamilyMode && !familyData) {
+      const familiesRef = collection(db, 'families');
+      const q = query(familiesRef, where('ownerId', '==', currentUser.uid));
+      getDocs(q).then(snap => {
+        if (!snap.empty) {
+          const fDoc = snap.docs[0];
+          // We need members too
+          getDocs(collection(db, 'families', fDoc.id, 'members')).then(memSnap => {
+            const members = memSnap.docs.map(m => ({
+              id: m.id,
+              ...m.data()
+            }));
+            setFamilyData({
+              id: fDoc.id,
+              name: fDoc.data().name,
+              inviteCode: fDoc.data().inviteCode,
+              members: members as any
+            });
+          });
+        }
+      }).catch(console.error);
+    }
+
+    return () => {
+      unsubTx();
+      unsubGoals();
+    };
+  }, [currentUser, isAuthChecking, isProfileLoaded]);
+
+  // Family Subscriptions
+  useEffect(() => {
+    if (!currentUser || isAuthChecking || !isProfileLoaded || !isFamilyMode || !familyData?.id) return;
+    
+    const familyId = familyData.id;
+
+    // Sub to Family Transactions
+    const fTxRef = collection(db, 'families', familyId, 'transactions');
+    const unsubFTx = onSnapshot(query(fTxRef), (snapshot) => {
+      const fetchedTx: Transaction[] = [];
+      snapshot.forEach(docSnap => {
+        fetchedTx.push({ id: docSnap.id, ...docSnap.data() } as Transaction);
+      });
+      fetchedTx.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      setFamilyTransactions(fetchedTx);
+    });
+
+    // Sub to Family Goals
+    const fGoalsRef = collection(db, 'families', familyId, 'goals');
+    const unsubFGoals = onSnapshot(query(fGoalsRef), (snapshot) => {
+      const fetchedGoals: Goal[] = [];
+      snapshot.forEach(docSnap => {
+        fetchedGoals.push({ id: docSnap.id, ...docSnap.data() } as Goal);
+      });
+      fetchedGoals.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+      setFamilyGoals(fetchedGoals);
+    });
+
+    // Sub to Family Members to keep them updated
+    const fMembersRef = collection(db, 'families', familyId, 'members');
+    const unsubFMembers = onSnapshot(query(fMembersRef), (snapshot) => {
+      const members: any[] = [];
+      snapshot.forEach(m => members.push({ id: m.id, ...m.data() }));
+      setFamilyData(prev => prev ? { ...prev, members } : null);
+    });
+
+    return () => {
+      unsubFTx();
+      unsubFGoals();
+      unsubFMembers();
+    };
+  }, [currentUser, isAuthChecking, isProfileLoaded, isFamilyMode, familyData?.id]);
+
+
   // --- Helpers ---
   
   const triggerStarsConfetti = () => {
@@ -226,29 +327,46 @@ export default function App() {
 
   // --- Callbacks ---
 
-  const handleAddTransaction = (txData: Omit<Transaction, 'id' | 'date'>, personalCategory?: CategoryType) => {
-    const newTx: Transaction = {
-      id: 'tx-' + Date.now(),
+  const handleAddTransaction = (txData: Omit<Transaction, 'id' | 'date' | 'createdAt' | 'userId' | 'familyId'>, personalCategory?: CategoryType) => {
+    if (!currentUser) return;
+    
+    const baseTx = {
       ...txData,
       date: 'Hoy',
+      createdAt: new Date().toISOString()
     };
-    if (isFamilyMode) {
-      setFamilyTransactions(prev => [newTx, ...prev]);
+
+    if (isFamilyMode && familyData) {
+      const ftxRef = doc(collection(db, 'families', familyData.id, 'transactions'));
+      setDoc(ftxRef, { 
+        ...baseTx, 
+        id: ftxRef.id,
+        familyId: familyData.id,
+        createdBy: userName,
+        createdByAvatar: activeAvatar.imageUrl
+      }).catch(console.error);
       
-      if (newTx.type === 'income') {
-        const personalTx: Transaction = {
-          id: 'tx-pers-' + Date.now() + Math.random(),
+      if (txData.type === 'income') {
+        const ptxRef = doc(collection(db, 'users', currentUser.uid, 'transactions'));
+        setDoc(ptxRef, {
+          id: ptxRef.id,
           type: 'expense',
-          amount: newTx.amount,
+          amount: baseTx.amount,
           category: personalCategory || '50_NEEDS',
-          description: `Aporte a familia: ${newTx.description}`,
+          description: `Aporte a familia: ${baseTx.description}`,
           date: 'Hoy',
-          icon: 'family_restroom'
-        };
-        setTransactions(prev => [personalTx, ...prev]);
+          icon: 'family_restroom',
+          createdAt: baseTx.createdAt,
+          userId: currentUser.uid
+        }).catch(console.error);
       }
     } else {
-      setTransactions(prev => [newTx, ...prev]);
+      const ptxRef = doc(collection(db, 'users', currentUser.uid, 'transactions'));
+      setDoc(ptxRef, {
+        ...baseTx,
+        id: ptxRef.id,
+        userId: currentUser.uid
+      }).catch(console.error);
     }
 
     setRewardMessage(`📊 ${txData.type === 'income' ? 'Ingreso' : 'Movimiento'} registrado con éxito.`);
@@ -260,20 +378,31 @@ export default function App() {
     }, 2500);
   };
 
-  const handleAddNewGoal = (goalData: Omit<Goal, 'id' | 'currentAmount' | 'completed' | 'dateCreated'>) => {
-    const newId = 'goal-' + Date.now();
-    const newGoal: Goal = {
+  const handleAddNewGoal = (goalData: Omit<Goal, 'id' | 'currentAmount' | 'completed' | 'dateCreated' | 'createdAt' | 'userId' | 'familyId'>) => {
+    if (!currentUser) return;
+
+    const baseGoal = {
       ...goalData,
-      id: newId,
       currentAmount: 0,
       completed: false,
-      dateCreated: new Date().toISOString().split('T')[0]
+      dateCreated: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString()
     };
     
-    if (isFamilyMode) {
-      setFamilyGoals(prev => [...prev, newGoal]);
+    if (isFamilyMode && familyData) {
+      const fgRef = doc(collection(db, 'families', familyData.id, 'goals'));
+      setDoc(fgRef, {
+        ...baseGoal,
+        id: fgRef.id,
+        familyId: familyData.id
+      }).catch(console.error);
     } else {
-      setGoals(prev => [...prev, newGoal]);
+      const gRef = doc(collection(db, 'users', currentUser.uid, 'goals'));
+      setDoc(gRef, {
+        ...baseGoal,
+        id: gRef.id,
+        userId: currentUser.uid
+      }).catch(console.error);
     }
 
     setRewardMessage(`🎯 Nueva meta registrada: "${goalData.title}"`);
@@ -284,57 +413,71 @@ export default function App() {
   };
 
   const handleAddAmountToGoal = (goalId: string, amount: number, createdBy?: string, createdByAvatar?: string) => {
-     const updateFn = (prev: Goal[]) => prev.map(g => {
-       if (g.id === goalId) {
-         const updated = g.currentAmount + amount;
-         if (updated >= g.targetAmount) {
-           setTimeout(() => {
-             setRewardMessage(`🎉 ¡Felicidades! Has completado: "${g.title}"`);
-             setShowRewardNotification(true);
-             triggerStarsConfetti();
-             setTimeout(() => setShowRewardNotification(false), 3000);
-           }, 500);
-         }
-         return {
-           ...g,
-           currentAmount: updated,
-           completed: updated >= g.targetAmount
-         };
-       }
-       return g;
-     });
+     if (!currentUser) return;
+     
+     const tDate = new Date().toISOString();
+     const isFam = isFamilyMode && familyData;
+     const targetGoalList = isFam ? familyGoals : goals;
+     const targetGoal = targetGoalList.find(g => g.id === goalId);
+     
+     if (!targetGoal) return;
+     
+     const updatedAmount = targetGoal.currentAmount + amount;
+     const isCompleted = updatedAmount >= targetGoal.targetAmount;
 
-     if (isFamilyMode) {
-       setFamilyGoals(updateFn);
+     // Update Goal
+     if (isFam) {
+       const fgRef = doc(db, 'families', familyData.id, 'goals', goalId);
+       updateDoc(fgRef, { currentAmount: updatedAmount, completed: isCompleted }).catch(console.error);
      } else {
-       setGoals(updateFn);
+       const gRef = doc(db, 'users', currentUser.uid, 'goals', goalId);
+       updateDoc(gRef, { currentAmount: updatedAmount, completed: isCompleted }).catch(console.error);
+     }
+
+     if (isCompleted) {
+       setTimeout(() => {
+         setRewardMessage(`🎉 ¡Felicidades! Has completado: "${targetGoal.title}"`);
+         setShowRewardNotification(true);
+         triggerStarsConfetti();
+         setTimeout(() => setShowRewardNotification(false), 3000);
+       }, 500);
      }
 
      // Automatically register transaction in history as savings
-     const targetGoal = isFamilyMode ? familyGoals.find(g => g.id === goalId) : goals.find(g => g.id === goalId);
-     const newTx: Transaction = {
-        id: 'tx-' + Date.now(),
-        type: 'expense',
+     const baseTx = {
+        type: 'expense' as const,
         amount: amount,
-        category: '20_SAVINGS',
-        description: `Abono a: ${targetGoal?.title || 'Meta'}`,
+        category: '20_SAVINGS' as const,
+        description: `Abono a: ${targetGoal.title}`,
         date: 'Hoy',
         icon: 'account_balance',
-        createdBy: isFamilyMode ? createdBy : undefined,
-        createdByAvatar: isFamilyMode ? createdByAvatar : undefined
+        createdAt: tDate
      };
      
-     if (isFamilyMode) {
-       setFamilyTransactions(prev => [newTx, ...prev]);
-       // As requested, also deduct from personal budget and categorize as savings
-       const personalTx: Transaction = {
-         ...newTx,
-         id: 'tx-pers-' + Date.now() + Math.random(),
-         description: `Aporte a meta familiar: ${targetGoal?.title || 'Meta'}`
-       };
-       setTransactions(prev => [personalTx, ...prev]);
+     if (isFam) {
+       const ftxRef = doc(collection(db, 'families', familyData.id, 'transactions'));
+       setDoc(ftxRef, {
+         ...baseTx,
+         id: ftxRef.id,
+         familyId: familyData.id,
+         createdBy: createdBy || userName,
+         createdByAvatar: createdByAvatar || activeAvatar.imageUrl
+       }).catch(console.error);
+
+       const ptxRef = doc(collection(db, 'users', currentUser.uid, 'transactions'));
+       setDoc(ptxRef, {
+         ...baseTx,
+         id: ptxRef.id,
+         userId: currentUser.uid,
+         description: `Aporte a meta familiar: ${targetGoal.title}`
+       }).catch(console.error);
      } else {
-       setTransactions(prev => [newTx, ...prev]);
+       const ptxRef = doc(collection(db, 'users', currentUser.uid, 'transactions'));
+       setDoc(ptxRef, {
+         ...baseTx,
+         id: ptxRef.id,
+         userId: currentUser.uid
+       }).catch(console.error);
      }
   };
 
@@ -351,14 +494,35 @@ export default function App() {
     }, 2000);
   };
 
-  const handleUpdateFamilyMembers = (updatedMembers: any[]) => {
-    if (familyData) {
-      const updated = {
-        ...familyData,
-        members: updatedMembers
-      };
-      setFamilyData(updated);
-      localStorage.setItem('fin_family_data', JSON.stringify(updated));
+  const handleUpdateFamilyMembers = async (updatedMembers: any[]) => {
+    if (familyData && currentUser) {
+      try {
+        // Simple sync strategy to firestore subcollection
+        // Any member in current familyData not in updatedMembers should be deleted.
+        // Any member in updatedMembers not in current familyData should be added.
+        const currentIds = new Set(familyData.members.map(m => m.id));
+        const updatedIds = new Set(updatedMembers.map(m => m.id));
+
+        // Deletions
+        const toDelete = familyData.members.filter(m => !updatedIds.has(m.id));
+        for (const item of toDelete) {
+           const ref = doc(db, 'families', familyData.id, 'members', item.id);
+           await deleteDoc(ref).catch(console.error);
+        }
+
+        // Additions/Updates
+        const toUpdate = updatedMembers.filter(m => !currentIds.has(m.id));
+        for (const item of toUpdate) {
+           const ref = doc(db, 'families', familyData.id, 'members', item.id);
+           await setDoc(ref, {
+             ...item,
+             createdAt: new Date().toISOString()
+           }).catch(console.error);
+        }
+        
+      } catch (error) {
+        console.error("Error updating members in Firestore:", error);
+      }
     }
   };
 
@@ -366,31 +530,41 @@ export default function App() {
     console.log("Joined with Firebase:", name);
   };
 
-  const handleCompleteOnboarding = (initialTxs: Omit<Transaction, 'id' | 'date'>[]) => {
+  const handleCompleteOnboarding = (initialTxs: Omit<Transaction, 'id' | 'date' | 'createdAt' | 'userId' | 'familyId'>[]) => {
     localStorage.setItem('fin_onboarded', 'true');
     setHasCompletedOnboarding(true);
 
-    const newTxs: Transaction[] = initialTxs.map(tx => ({
-      ...tx,
-      id: 'tx-init-' + Date.now() + Math.random(),
-      date: 'Hoy'
-    }));
-
-    setTransactions(newTxs);
-    setGoals([]);
-    setFamilyTransactions([]);
-    setFamilyGoals([]);
+    if (currentUser) {
+      initialTxs.forEach((tx) => {
+        const ptxRef = doc(collection(db, 'users', currentUser.uid, 'transactions'));
+        setDoc(ptxRef, {
+          ...tx,
+          id: ptxRef.id,
+          userId: currentUser.uid,
+          date: 'Hoy',
+          createdAt: new Date().toISOString()
+        }).catch(console.error);
+      });
+      const uRef = doc(db, 'users', currentUser.uid);
+      updateDoc(uRef, { hasCompletedOnboarding: true }).catch(console.error);
+    }
+    
+    // Clear out family mode completely upon resetting
     setFamilyData(null);
     setIsFamilyMode(false);
   };
 
   const handleDeleteTransaction = (id: string) => {
-    if (isFamilyMode) {
-      setFamilyTransactions(prev => prev.filter(tx => tx.id !== id));
-      // Also cleanup personal linked transation if they were created together (basic matching by substring if needed, or by exact id match just in case)
-      setTransactions(prev => prev.filter(tx => tx.id !== id && !tx.id.includes(id)));
+    if (!currentUser) return;
+    
+    if (isFamilyMode && familyData) {
+      // Find in family
+      const ftxRef = doc(db, 'families', familyData.id, 'transactions', id);
+      deleteDoc(ftxRef).catch(console.error);
     } else {
-      setTransactions(prev => prev.filter(tx => tx.id !== id));
+      // Find in personal
+      const ptxRef = doc(db, 'users', currentUser.uid, 'transactions', id);
+      deleteDoc(ptxRef).catch(console.error);
     }
     
     setRewardMessage('🗑️ Movimiento eliminado');
@@ -398,6 +572,90 @@ export default function App() {
     setTimeout(() => {
       setShowRewardNotification(false);
     }, 2000);
+  };
+
+  const handleCreateFamily = async (data: FamilyData) => {
+    if (!currentUser) return;
+    try {
+      const familyId = data.inviteCode; // Use invite code as the actual document ID!
+      const fRef = doc(db, 'families', familyId);
+      
+      // Check if code is taken (rare but possible)
+      const existing = await getDoc(fRef);
+      if (existing.exists()) {
+         alert("Hubo un error de colisión de código. Por favor intenta crear la familia otra vez.");
+         return;
+      }
+
+      const familyPayload = {
+        ownerId: currentUser.uid,
+        name: data.name,
+        inviteCode: data.inviteCode,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(fRef, familyPayload);
+      
+      const memberRef = doc(db, 'families', familyId, 'members', currentUser.uid);
+      await setDoc(memberRef, {
+        name: userName,
+        role: 'admin',
+        avatarUrl: activeAvatar.imageUrl,
+        createdAt: new Date().toISOString()
+      });
+      
+      setFamilyData({
+        id: familyId,
+        name: data.name,
+        inviteCode: data.inviteCode,
+        members: [{ id: currentUser.uid, name: userName, role: 'admin', avatarUrl: activeAvatar.imageUrl }]
+      });
+      
+      setRewardMessage(`👨‍👩‍👧‍👦 Modo Familiar Creado: ${data.name}`);
+      setShowRewardNotification(true);
+      setTimeout(() => setShowRewardNotification(false), 3000);
+    } catch (e) {
+      console.error(e);
+      alert('Error creando la familia. Revisa los permisos.');
+    }
+  };
+
+  const handleJoinFamily = async (code: string) => {
+    if (!currentUser) return;
+    try {
+      const familyId = code.toUpperCase();
+      const fRef = doc(db, 'families', familyId);
+      const fDoc = await getDoc(fRef);
+      
+      if (!fDoc.exists()) {
+        alert("El código ingresado es incorrecto o la familia no existe.");
+        return;
+      }
+      
+      const memberRef = doc(db, 'families', familyId, 'members', currentUser.uid);
+      await setDoc(memberRef, {
+        name: userName,
+        role: 'member',
+        avatarUrl: activeAvatar.imageUrl,
+        createdAt: new Date().toISOString()
+      });
+      
+      const memSnap = await getDocs(collection(db, 'families', familyId, 'members'));
+      const members = memSnap.docs.map(m => ({ id: m.id, ...m.data() }));
+
+      setFamilyData({
+        id: familyId,
+        name: fDoc.data().name,
+        inviteCode: fDoc.data().inviteCode,
+        members: members as any
+      });
+      
+      setRewardMessage(`👨‍👩‍👧‍👦 Te has unido a la familia`);
+      setShowRewardNotification(true);
+      setTimeout(() => setShowRewardNotification(false), 3000);
+    } catch (e) {
+      console.error(e);
+      alert('Error al intentar unirse a la familia.');
+    }
   };
 
   const handleLogout = async () => {
@@ -464,12 +722,8 @@ export default function App() {
       <main className="max-w-base lg:max-w-lg mx-auto px-4 py-4 w-full flex flex-col items-center">
         {isFamilyMode && !familyData ? (
           <FamilySetupView 
-            onFamilyCreated={(data) => {
-              setFamilyData(data);
-              setRewardMessage(`👨‍👩‍👧‍👦 Modo Familiar Creado: ${data.name}`);
-              setShowRewardNotification(true);
-              setTimeout(() => setShowRewardNotification(false), 3000);
-            }} 
+            onFamilyCreated={handleCreateFamily} 
+            onFamilyJoined={handleJoinFamily}
             onCancel={() => setIsFamilyMode(false)}
           />
         ) : (
@@ -547,6 +801,10 @@ export default function App() {
             </AnimatePresence>
           </div>
         )}
+        <footer className="w-full text-center mt-auto pt-10 pb-24 text-[10px] sm:text-[11px] text-slate-400 font-medium">
+          Developed by Engineer Maria Camila Porras Leguizamon. <br/>
+          All intellectual property rights reserved © {new Date().getFullYear()} • v2.0
+        </footer>
       </main>
 
       {(!isFamilyMode || familyData) && (

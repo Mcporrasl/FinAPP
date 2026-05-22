@@ -3,28 +3,32 @@ import { FamilyData } from '../types';
 
 interface FamilySetupViewProps {
   onFamilyCreated: (family: FamilyData) => void;
+  onFamilyJoined: (inviteCode: string) => void;
   onCancel: () => void;
 }
 
-export function FamilySetupView({ onFamilyCreated, onCancel }: FamilySetupViewProps) {
+export function FamilySetupView({ onFamilyCreated, onFamilyJoined, onCancel }: FamilySetupViewProps) {
+  const [mode, setMode] = useState<'create' | 'join'>('create');
   const [familyName, setFamilyName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   
-  const handleCreate = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!familyName.trim()) return;
-
-    const newFamily: FamilyData = {
-      id: 'family-' + Date.now(),
-      name: familyName,
-      members: [
-        { id: 'm-1', name: 'Yo (Admin)', role: 'admin', avatarUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Admin&backgroundColor=b6e3f4' },
-        { id: 'm-2', name: 'Manuelita', role: 'member', avatarUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Lily&backgroundColor=ffdfbf' },
-        { id: 'm-3', name: 'Papá', role: 'member', avatarUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Jack&backgroundColor=c0aede' }
-      ],
-      inviteCode: Math.random().toString(36).substring(2, 8).toUpperCase()
-    };
-    
-    onFamilyCreated(newFamily);
+    if (mode === 'create') {
+      if (!familyName.trim()) return;
+      const newFamily: FamilyData = {
+        id: 'family-' + Date.now(),
+        name: familyName,
+        members: [
+          { id: 'm-1', name: 'Yo (Admin)', role: 'admin', avatarUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Admin&backgroundColor=b6e3f4' }
+        ],
+        inviteCode: Math.random().toString(36).substring(2, 8).toUpperCase()
+      };
+      onFamilyCreated(newFamily);
+    } else {
+      if (!inviteCode.trim()) return;
+      onFamilyJoined(inviteCode.trim().toUpperCase());
+    }
   };
 
   return (
@@ -34,32 +38,70 @@ export function FamilySetupView({ onFamilyCreated, onCancel }: FamilySetupViewPr
           <span className="material-symbols-outlined text-[32px]">group</span>
         </div>
         
-        <h2 className="text-xl font-extrabold text-slate-800 mb-2">Crear Modo Familiar</h2>
-        <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
+        <h2 className="text-xl font-extrabold text-slate-800 mb-2">Modo Familiar</h2>
+        <p className="text-sm font-medium text-slate-500 mb-6 leading-relaxed">
           Comparte gastos, organiza metas comunes y mejora la administración del hogar junto a tu familia.
         </p>
 
-        <form onSubmit={handleCreate} className="flex flex-col gap-4 text-left">
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Nombre de tu Familia
-            </label>
-            <input 
-              type="text" 
-              value={familyName}
-              onChange={(e) => setFamilyName(e.target.value)}
-              placeholder="Ej: Familia Pérez"
-              maxLength={30}
-              className="bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-800 outline-none focus:border-indigo-500 font-bold placeholder-slate-400"
-              required
-            />
-          </div>
+        <div className="flex bg-slate-100 rounded-xl p-1 mb-6">
+          <button
+            type="button"
+            onClick={() => setMode('create')}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+              mode === 'create' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Crear Familia
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('join')}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+              mode === 'join' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Unirse con Código
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-left">
+          {mode === 'create' ? (
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Nombre de tu Familia
+              </label>
+              <input 
+                type="text" 
+                value={familyName}
+                onChange={(e) => setFamilyName(e.target.value)}
+                placeholder="Ej: Familia Pérez"
+                maxLength={30}
+                className="bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-800 outline-none focus:border-emerald-500 font-bold placeholder-slate-400"
+                required
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Código de Invitación
+              </label>
+              <input 
+                type="text" 
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="Ej: A1B2C3"
+                maxLength={10}
+                className="bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-800 outline-none focus:border-emerald-500 font-bold placeholder-slate-400 uppercase text-center tracking-widest"
+                required
+              />
+            </div>
+          )}
 
           <button 
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition-all mt-2"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition-all mt-2"
           >
-            Crear y Obtener Código
+            {mode === 'create' ? 'Crear y Obtener Código' : 'Unirse a la Familia'}
           </button>
           
           <button 

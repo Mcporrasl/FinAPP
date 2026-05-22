@@ -3,6 +3,30 @@ import { Transaction, Goal, FamilyData, CategoryType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryAnalysisModal } from './CategoryAnalysisModal';
 
+function CopyInviteButton({ inviteCode }: { inviteCode: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(inviteCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  
+  return (
+    <motion.button 
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={handleCopy}
+      className={`bg-white border-2 border-emerald-100 px-3 py-1.5 rounded-xl text-xs font-black shadow-sm flex items-center gap-1 transition-colors ${copied ? 'text-emerald-700 bg-emerald-50' : 'text-emerald-700'}`}
+    >
+      <span className="material-symbols-outlined text-[14px]">
+        {copied ? 'check' : 'content_copy'}
+      </span>
+      {copied ? 'Copiado' : 'Código'}
+    </motion.button>
+  );
+}
+
 interface HomeTabProps {
   userName: string;
   transactions: Transaction[];
@@ -126,17 +150,7 @@ export function HomeTab({
              </div>
           </div>
           <div className="flex gap-2">
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                alert(`Código de invitación de tu familia:\n\n${familyData.inviteCode}\n\n¡Cópialo y compártelo!`);
-              }}
-              className="bg-white border-2 border-emerald-100 text-emerald-700 px-3 py-1.5 rounded-xl text-xs font-black shadow-sm"
-            >
-              Invitación
-            </motion.button>
+            <CopyInviteButton inviteCode={familyData.inviteCode} />
             <motion.button 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
