@@ -64,27 +64,33 @@ export interface AvatarOption {
 export const AVATAR_OPTIONS: AvatarOption[] = [
   {
     id: 'avatar-1',
-    name: 'Motivado',
-    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Felix&backgroundColor=b6e3f4',
-    animationClass: 'animate-bounce-slow'
+    name: 'Hombre',
+    imageUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Javier&backgroundColor=b6e3f4',
+    animationClass: ''
   },
   {
     id: 'avatar-2',
-    name: 'Tranquilo',
-    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Aneka&backgroundColor=c0aede',
-    animationClass: 'animate-pulse-slow'
+    name: 'Mujer',
+    imageUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Maria&backgroundColor=c0aede',
+    animationClass: ''
   },
   {
     id: 'avatar-3',
-    name: 'Enfocado',
-    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Leo&backgroundColor=ffdfbf',
-    animationClass: 'animate-float'
+    name: 'Niño',
+    imageUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Leo&backgroundColor=ffdfbf',
+    animationClass: ''
   },
   {
     id: 'avatar-4',
-    name: 'Festivo',
-    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Destiny&backgroundColor=d1d4f9',
-    animationClass: 'animate-wiggle'
+    name: 'Niña',
+    imageUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Luna&backgroundColor=d1d4f9',
+    animationClass: ''
+  },
+  {
+    id: 'avatar-5',
+    name: 'Abuela',
+    imageUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Gladys&backgroundColor=e2e8f0',
+    animationClass: ''
   }
 ];
 

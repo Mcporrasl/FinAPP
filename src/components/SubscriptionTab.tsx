@@ -19,8 +19,8 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
   // Precios en COP (Simulados para Wompi, en centavos y en formato de vista)
   const plans = {
     pro_monthly: { label: 'Mensual', priceCOP: 19900, cents: 1990000, desc: 'Manejo de finanzas con 1 familiar extra.' },
-    pro_annual: { label: 'Anual', priceCOP: 199900, cents: 19990000, desc: 'Ahorra un 15% pagando el año completo.' },
-    pro_lifetime: { label: 'Vitalicia', priceCOP: 499900, cents: 49990000, desc: 'Paga una sola vez y disfruta de FinAPP Pro para siempre.' },
+    pro_annual: { label: 'Anual', priceCOP: 145900, cents: 14590000, desc: 'Ahorra un 15% pagando el año completo.' },
+    pro_lifetime: { label: 'Vitalicia', priceCOP: 259900, cents: 25990000, desc: 'Paga una sola vez y disfruta de FinAPP Pro para siempre.' },
   };
 
   const handleWompiCheckout = async (tier: SubscriptionTier) => {
@@ -33,7 +33,21 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
       setTimeout(async () => {
         try {
           const userRef = doc(db, 'users', userId);
-          await updateDoc(userRef, { subscriptionTier: tier });
+          const updates: any = { subscriptionTier: tier };
+          
+          if (tier === 'pro_monthly' || tier === 'pro_annual') {
+            const expiration = new Date();
+            if (tier === 'pro_monthly') {
+               expiration.setDate(expiration.getDate() + 30);
+            } else {
+               expiration.setDate(expiration.getDate() + 365);
+            }
+            updates.subscriptionExpiresAt = expiration.toISOString();
+          } else {
+             updates.subscriptionExpiresAt = null;
+          }
+          
+          await updateDoc(userRef, updates);
           onUpgrade(tier);
           alert('¡Pago Simulado Exitoso con Wompi!');
         } catch (e) {
@@ -77,6 +91,8 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
             transaction.set(couponRef, { maxUses: 500, currentUses: 1, tier: 'pro_monthly' });
           } else if (code === 'PREMMC04') {
             transaction.set(couponRef, { maxUses: 50, currentUses: 1, tier: 'pro_lifetime' });
+          } else if (code === 'DEMO') {
+            transaction.set(couponRef, { maxUses: 1, currentUses: 1, tier: 'pro_monthly', trialDays: 30 });
           } else if (['COLSUBSIDIO2026', 'PROTECCION_PRO', 'FINAPP_FAMILIA'].includes(code)) {
             transaction.set(couponRef, { maxUses: 1000, currentUses: 1, tier: 'pro_annual' });
           } else {
@@ -92,10 +108,23 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
         
         // Update User
         const userRef = doc(db, 'users', userId);
-        const tier = couponDoc.exists() ? couponDoc.data().tier : (
-          code === 'PREMMC04' ? 'pro_lifetime' : (code === 'EMPMANUELITA' ? 'pro_monthly' : 'pro_annual')
-        );
-        transaction.update(userRef, { subscriptionTier: tier });
+        const data = couponDoc.exists() ? couponDoc.data() : { tier: code === 'PREMMC04' ? 'pro_lifetime' : (code === 'DEMO' || code === 'EMPMANUELITA' ? 'pro_monthly' : 'pro_annual'), trialDays: code === 'DEMO' ? 30 : null };
+        const tier = data.tier;
+        const updateData: any = { subscriptionTier: tier };
+        
+        if (tier === 'pro_monthly') {
+           const expiration = new Date();
+           expiration.setDate(expiration.getDate() + 30);
+           updateData.subscriptionExpiresAt = expiration.toISOString();
+        } else if (tier === 'pro_annual') {
+           const expiration = new Date();
+           expiration.setDate(expiration.getDate() + 365);
+           updateData.subscriptionExpiresAt = expiration.toISOString();
+        } else {
+           updateData.subscriptionExpiresAt = null; // Lifetime
+        }
+        
+        transaction.update(userRef, updateData);
         return tier as SubscriptionTier;
       });
 

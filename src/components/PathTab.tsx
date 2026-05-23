@@ -87,7 +87,12 @@ export function PathTab({ transactions, onDeleteTransaction }: PathTabProps) {
                 <div className="flex flex-col">
                   <span className="font-black text-base text-slate-800 line-clamp-1">{tx.description}</span>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-xs font-bold text-slate-400">{tx.date}</span>
+                    <span className="text-xs font-bold text-slate-400">
+                      {new Date(tx.createdAt).toLocaleString('es-CO', { 
+                        year: 'numeric', month: 'short', day: 'numeric', 
+                        hour: '2-digit', minute: '2-digit' 
+                      })}
+                    </span>
                     {tx.createdBy && (
                       <span className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded-lg border border-indigo-100">
                         <img src={tx.createdByAvatar || 'https://api.dicebear.com/9.x/micah/svg?seed=Unknown'} alt={tx.createdBy} className="w-4 h-4 rounded-full" />

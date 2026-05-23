@@ -182,8 +182,29 @@ export default function App() {
             else setIsFamilyMode(false);
             
             if (data.subscriptionTier) {
-              setSubscriptionTier(data.subscriptionTier);
-              localStorage.setItem('fin_sub_tier', data.subscriptionTier);
+              let tier = data.subscriptionTier;
+              if (data.subscriptionExpiresAt) {
+                const expiresAt = new Date(data.subscriptionExpiresAt);
+                const now = new Date();
+                
+                // If expired
+                if (now > expiresAt) {
+                  tier = 'free';
+                  updateDoc(userRef, { subscriptionTier: 'free', subscriptionExpiresAt: null });
+                  setRewardMessage('Tu suscripción o periodo de prueba ha expirado.');
+                  setShowRewardNotification(true);
+                  setTimeout(() => setShowRewardNotification(false), 5000);
+                } 
+                // If expires in less than 24 hours
+                else if (expiresAt.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
+                  setRewardMessage('⚠️ Tu suscripción vence en menos de 24 horas.');
+                  setShowRewardNotification(true);
+                  setTimeout(() => setShowRewardNotification(false), 5000);
+                }
+              }
+              
+              setSubscriptionTier(tier);
+              localStorage.setItem('fin_sub_tier', tier);
             } else {
               setSubscriptionTier('free');
               localStorage.setItem('fin_sub_tier', 'free');
