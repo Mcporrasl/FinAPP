@@ -172,6 +172,23 @@ export default function App() {
               setHasCompletedOnboarding(data.hasCompletedOnboarding);
               localStorage.setItem('fin_onboarded', String(data.hasCompletedOnboarding));
             }
+            if (data.familyId && data.isFamilyMode) {
+              // Fetch Family data using stored ID
+              const fRef = doc(db, 'families', data.familyId);
+              const fSnap = await getDoc(fRef).catch(console.error);
+              if (fSnap && fSnap.exists()) {
+                const memSnap = await getDocs(collection(db, 'families', data.familyId, 'members')).catch(console.error);
+                if (memSnap) {
+                  const members = memSnap.docs.map(m => ({ id: m.id, ...m.data() }));
+                  setFamilyData({
+                    id: fSnap.id,
+                    name: fSnap.data().name,
+                    inviteCode: fSnap.data().inviteCode,
+                    members: members as any
+                  });
+                }
+              }
+            }
           }
           setIsProfileLoaded(true);
         } catch (error) {
@@ -260,6 +277,8 @@ export default function App() {
               inviteCode: fDoc.data().inviteCode,
               members: members as any
             });
+            const uRef = doc(db, 'users', currentUser.uid);
+            updateDoc(uRef, { familyId: fDoc.id }).catch(console.error);
           });
         }
       }).catch(console.error);
@@ -597,6 +616,7 @@ export default function App() {
       
       const memberRef = doc(db, 'families', familyId, 'members', currentUser.uid);
       await setDoc(memberRef, {
+        id: currentUser.uid,
         name: userName,
         role: 'admin',
         avatarUrl: activeAvatar.imageUrl,
@@ -610,6 +630,9 @@ export default function App() {
         members: [{ id: currentUser.uid, name: userName, role: 'admin', avatarUrl: activeAvatar.imageUrl }]
       });
       
+      const uRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(uRef, { familyId: familyId, isFamilyMode: true }).catch(console.error);
+
       setRewardMessage(`👨‍👩‍👧‍👦 Modo Familiar Creado: ${data.name}`);
       setShowRewardNotification(true);
       setTimeout(() => setShowRewardNotification(false), 3000);
@@ -633,6 +656,7 @@ export default function App() {
       
       const memberRef = doc(db, 'families', familyId, 'members', currentUser.uid);
       await setDoc(memberRef, {
+        id: currentUser.uid,
         name: userName,
         role: 'member',
         avatarUrl: activeAvatar.imageUrl,
@@ -649,6 +673,9 @@ export default function App() {
         members: members as any
       });
       
+      const uRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(uRef, { familyId: familyId, isFamilyMode: true }).catch(console.error);
+
       setRewardMessage(`👨‍👩‍👧‍👦 Te has unido a la familia`);
       setShowRewardNotification(true);
       setTimeout(() => setShowRewardNotification(false), 3000);
