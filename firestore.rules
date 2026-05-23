@@ -35,7 +35,8 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activeAvatarId']) || (data.activeAvatarId is string && data.activeAvatarId.size() <= 100))
         && (!data.keys().hasAny(['isFamilyMode']) || data.isFamilyMode is bool)
         && (!data.keys().hasAny(['hasCompletedOnboarding']) || data.hasCompletedOnboarding is bool)
-        && (!data.keys().hasAny(['familyId']) || (data.familyId is string && data.familyId.size() <= 100));
+        && (!data.keys().hasAny(['familyId']) || (data.familyId is string && data.familyId.size() <= 100))
+        && (!data.keys().hasAny(['subscriptionTier']) || (data.subscriptionTier in ['free', 'pro_monthly', 'pro_annual', 'pro_lifetime']));
     }
     function isValidUserUpdate(data) {
       return data.uid == existing().uid
@@ -45,7 +46,8 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activeAvatarId']) || (data.activeAvatarId is string && data.activeAvatarId.size() <= 100))
         && (!data.keys().hasAny(['isFamilyMode']) || data.isFamilyMode is bool)
         && (!data.keys().hasAny(['hasCompletedOnboarding']) || data.hasCompletedOnboarding is bool)
-        && (!data.keys().hasAny(['familyId']) || (data.familyId is string && data.familyId.size() <= 100));
+        && (!data.keys().hasAny(['familyId']) || (data.familyId is string && data.familyId.size() <= 100))
+        && (!data.keys().hasAny(['subscriptionTier']) || (data.subscriptionTier in ['free', 'pro_monthly', 'pro_annual', 'pro_lifetime']));
     }
 
     // --- Transaction Validation ---
@@ -177,13 +179,18 @@ service cloud.firestore {
         && (!data.keys().hasAny(['completed']) || data.completed is bool);
     }
 
+    match /coupons/{couponId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn(); 
+    }
+
     // --- Users Collection ---
     match /users/{userId} {
       allow read: if isSignedIn() && request.auth.uid == userId;
-      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUser(incoming()) && incoming().keys().hasOnly(['uid', 'name', 'currency', 'activeAvatarId', 'isFamilyMode', 'hasCompletedOnboarding', 'createdAt', 'familyId']);
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUser(incoming()) && incoming().keys().hasOnly(['uid', 'name', 'currency', 'activeAvatarId', 'isFamilyMode', 'hasCompletedOnboarding', 'createdAt', 'familyId', 'subscriptionTier']);
       allow update: if (isSignedIn() && request.auth.uid == userId && isValidId(userId) 
         && isValidUserUpdate(incoming()) 
-        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'currency', 'activeAvatarId', 'isFamilyMode', 'hasCompletedOnboarding', 'familyId']));
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'currency', 'activeAvatarId', 'isFamilyMode', 'hasCompletedOnboarding', 'familyId', 'subscriptionTier']));
       allow delete: if false;
 
       match /transactions/{transactionId} {

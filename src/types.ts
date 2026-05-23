@@ -50,7 +50,9 @@ export interface FamilyData {
   inviteCode: string;
 }
 
-export type TabType = 'home' | 'goals' | 'add' | 'history';
+export type SubscriptionTier = 'free' | 'pro_monthly' | 'pro_annual' | 'pro_lifetime';
+
+export type TabType = 'home' | 'goals' | 'add' | 'history' | 'subscription';
 
 export interface AvatarOption {
   id: string;

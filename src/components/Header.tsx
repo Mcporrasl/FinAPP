@@ -1,14 +1,18 @@
 import React from 'react';
-import { AvatarOption } from '../types';
+import { AvatarOption, SubscriptionTier } from '../types';
 import { PiggyLogo } from './PiggyLogo';
 
 interface HeaderProps {
   currentAvatar: AvatarOption;
   isFamilyMode: boolean;
+  subscriptionTier: SubscriptionTier;
   onOpenSettings: () => void;
+  onOpenSubscription: () => void;
 }
 
-export function Header({ currentAvatar, isFamilyMode, onOpenSettings }: HeaderProps) {
+export function Header({ currentAvatar, isFamilyMode, onOpenSettings, subscriptionTier, onOpenSubscription }: HeaderProps) {
+  const isPro = subscriptionTier !== 'free';
+
   return (
     <header className="bg-white/95 backdrop-blur-md border-b-2 border-slate-100 sticky top-0 z-40">
       <div className="flex justify-between items-center px-6 py-4 max-w-lg mx-auto w-full">
@@ -45,21 +49,42 @@ export function Header({ currentAvatar, isFamilyMode, onOpenSettings }: HeaderPr
               <div className="ml-1 flex items-center justify-center -mt-1"><PiggyLogo size={36} /></div>
             </h1>
           </div>
-          {isFamilyMode && (
-            <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-black uppercase tracking-widest mt-1">
-              Modo Familiar
-            </span>
-          )}
+          <div className="flex gap-2 items-center mt-1">
+            {isPro && (
+              <span className="text-[10px] bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-black uppercase tracking-widest flex items-center gap-1 shadow-sm">
+                <span className="material-symbols-outlined text-[12px]">workspace_premium</span> Pro
+              </span>
+            )}
+            {isFamilyMode && (
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-black uppercase tracking-widest">
+                Modo Familiar
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Settings button */}
-        <button 
-          id="settings-btn"
-          onClick={onOpenSettings}
-          className="w-10 h-10 rounded-2xl bg-slate-50 hover:bg-slate-100 border-2 border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:rotate-45 transition-all duration-300 active:scale-95 outline-none shadow-sm"
-        >
-          <span className="material-symbols-outlined text-[24px] pointer-events-none">settings</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Subscription button */}
+          <button 
+            id="sub-btn"
+            onClick={onOpenSubscription}
+            title="Premium"
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 active:scale-95 outline-none shadow-sm ${
+              isPro ? 'bg-amber-100 border-2 border-amber-200 text-amber-600 hover:text-amber-700' : 'bg-slate-50 border-2 border-slate-100 text-amber-400 hover:text-amber-500 hover:bg-slate-100'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[24px] pointer-events-none">workspace_premium</span>
+          </button>
+          
+          {/* Settings button */}
+          <button 
+            id="settings-btn"
+            onClick={onOpenSettings}
+            className="w-10 h-10 rounded-2xl bg-slate-50 hover:bg-slate-100 border-2 border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:rotate-45 transition-all duration-300 active:scale-95 outline-none shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[24px] pointer-events-none">settings</span>
+          </button>
+        </div>
       </div>
     </header>
   );

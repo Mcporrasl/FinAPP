@@ -6,6 +6,7 @@ import { HomeTab } from './components/HomeTab';
 import { AddTab } from './components/AddTab';
 import { DreamsTab } from './components/DreamsTab'; // Acts as GoalsTab
 import { PathTab } from './components/PathTab';     // Acts as HistoryTab
+import { SubscriptionTab } from './components/SubscriptionTab';
 import { SettingsModal } from './components/SettingsModal';
 import { FamilySetupView } from './components/FamilySetupView';
 import { AuthView } from './components/AuthView';
@@ -103,6 +104,9 @@ export default function App() {
   const [isFamilyMode, setIsFamilyMode] = useState<boolean>(() => {
     return localStorage.getItem('fin_family_mode') === 'true';
   });
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro_monthly' | 'pro_annual' | 'pro_lifetime'>(() => {
+    return (localStorage.getItem('fin_sub_tier') as any) || 'free';
+  });
 
   const [familyData, setFamilyData] = useState<FamilyData | null>(() => {
     const saved = localStorage.getItem('fin_family_data');
@@ -159,11 +163,14 @@ export default function App() {
               activeAvatarId: AVATAR_OPTIONS[0].id,
               isFamilyMode: false,
               hasCompletedOnboarding: false,
+              subscriptionTier: 'free',
               createdAt: new Date().toISOString()
             });
             setIsFamilyMode(false);
             setFamilyData(null);
             setHasCompletedOnboarding(false);
+            setSubscriptionTier('free');
+            localStorage.setItem('fin_sub_tier', 'free');
           } else {
             const data = userSnap.data();
             setUserName(data.name || user.displayName || 'Usuario');
@@ -173,6 +180,14 @@ export default function App() {
             
             if (data.isFamilyMode !== undefined) setIsFamilyMode(data.isFamilyMode);
             else setIsFamilyMode(false);
+            
+            if (data.subscriptionTier) {
+              setSubscriptionTier(data.subscriptionTier);
+              localStorage.setItem('fin_sub_tier', data.subscriptionTier);
+            } else {
+              setSubscriptionTier('free');
+              localStorage.setItem('fin_sub_tier', 'free');
+            }
             
             if (data.hasCompletedOnboarding !== undefined) {
               setHasCompletedOnboarding(data.hasCompletedOnboarding);
@@ -679,6 +694,14 @@ export default function App() {
         return;
       }
       
+      const memSnap = await getDocs(collection(db, 'families', familyId, 'members'));
+      
+      // Enforce the 2 members max
+      if (memSnap.size >= 2) {
+        alert("Esta familia ya ha alcanzado su límite de integrantes según el plan de suscripción.");
+        return;
+      }
+
       const memberRef = doc(db, 'families', familyId, 'members', currentUser.uid);
       await setDoc(memberRef, {
         id: currentUser.uid,
@@ -688,8 +711,8 @@ export default function App() {
         createdAt: new Date().toISOString()
       });
       
-      const memSnap = await getDocs(collection(db, 'families', familyId, 'members'));
-      const members = memSnap.docs.map(m => ({ id: m.id, ...m.data() }));
+      const finalMemSnap = await getDocs(collection(db, 'families', familyId, 'members'));
+      const members = finalMemSnap.docs.map(m => ({ id: m.id, ...m.data() }));
 
       setFamilyData({
         id: familyId,
@@ -768,7 +791,9 @@ export default function App() {
       <Header 
         currentAvatar={activeAvatar} 
         isFamilyMode={isFamilyMode}
+        subscriptionTier={subscriptionTier as any}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSubscription={() => setActiveTab('subscription')}
       />
 
       <main className="max-w-base lg:max-w-lg mx-auto px-4 py-4 w-full flex flex-col items-center">
@@ -781,6 +806,25 @@ export default function App() {
         ) : (
           <div className="w-full relative">
             <AnimatePresence mode="wait">
+              {activeTab === 'subscription' && (
+                <motion.div
+                  key="subscription"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <SubscriptionTab
+                    currentTier={subscriptionTier as any}
+                    userId={currentUser?.uid || ''}
+                    onUpgrade={(tier) => {
+                       setSubscriptionTier(tier);
+                       localStorage.setItem('fin_sub_tier', tier);
+                    }}
+                  />
+                </motion.div>
+              )}
+
               {activeTab === 'home' && (
                 <motion.div
                   key="home"
@@ -862,9 +906,28 @@ export default function App() {
       {(!isFamilyMode || familyData) && (
         <NavBar 
           activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
+          setActiveTab={(tab) => {
+            const hasFullAccess = subscriptionTier !== 'free' || familyData !== null;
+            if (!hasFullAccess && tab !== 'home' && tab !== 'subscription') {
+              setActiveTab('subscription');
+              setRewardMessage('🔒 Hazte Pro para desbloquear todo FinAPP');
+              setShowRewardNotification(true);
+              setTimeout(() => setShowRewardNotification(false), 3000);
+            } else {
+              setActiveTab(tab);
+            }
+          }} 
           isFamilyMode={isFamilyMode}
-          toggleFamilyMode={() => setIsFamilyMode(!isFamilyMode)}
+          toggleFamilyMode={() => {
+            if (!isFamilyMode && subscriptionTier === 'free') {
+              setActiveTab('subscription');
+              setRewardMessage('⭐ Pásate a Pro para usar el Modo Familiar');
+              setShowRewardNotification(true);
+              setTimeout(() => setShowRewardNotification(false), 3000);
+            } else {
+              setIsFamilyMode(!isFamilyMode);
+            }
+          }}
         />
       )}
     </div>

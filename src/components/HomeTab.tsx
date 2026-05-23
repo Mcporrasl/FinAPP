@@ -388,65 +388,76 @@ export function HomeTab({
 
             {/* Add New Member Form */}
             {onUpdateFamilyMembers && (
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!newMemberName.trim()) return;
-                  const newMember = {
-                    id: 'm-' + Date.now(),
-                    name: newMemberName.trim(),
-                    role: 'member' as const,
-                    avatarUrl: newMemberAvatar
-                  };
-                  onUpdateFamilyMembers([...familyData.members, newMember]);
-                  setNewMemberName('');
-                }}
-                className="border-t border-slate-100 pt-4 flex flex-col gap-3.5"
-              >
-                <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">¿Añadir Integrante?</p>
-                
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-400">Nombre o Apodo</label>
-                  <input
-                    type="text"
-                    required
-                    value={newMemberName}
-                    onChange={(e) => setNewMemberName(e.target.value)}
-                    placeholder="Ej. Mamá, Carlos, Manuelita"
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 placeholder-slate-400"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-400">Seleccionar Avatar</label>
-                  <div className="flex gap-2 overflow-x-auto py-2">
-                    {avatarSeeds.map((seed) => {
-                      const url = `https://api.dicebear.com/9.x/micah/svg?seed=${seed}&backgroundColor=e2e8f0`;
-                      return (
-                        <button
-                          key={seed}
-                          type="button"
-                          onClick={() => setNewMemberAvatar(url)}
-                          className={`w-12 h-12 p-1.5 rounded-full border-2 flex-shrink-0 transition-all cursor-pointer ${
-                            newMemberAvatar === url 
-                              ? 'border-indigo-600 bg-indigo-50 shadow-md ring-2 ring-indigo-500/20' 
-                              : 'border-slate-200 hover:bg-slate-50 bg-white'
-                          }`}
-                        >
-                          <img src={url} alt={seed} className="w-full h-full object-cover rounded-full" />
-                        </button>
-                      );
-                    })}
+              <>
+                {familyData.members.length >= 2 ? (
+                  <div className="border-t border-slate-100 pt-4 flex flex-col gap-2 relative">
+                     <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">¿Añadir Integrante?</p>
+                     <div className="bg-amber-50 border border-amber-200 text-amber-700 p-3 rounded-lg text-xs font-medium text-center">
+                        Has alcanzado el límite de 1 familiar adicional con tu suscripción plan Pro.
+                     </div>
                   </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-xs font-black shadow-md mt-1 transition-all"
+                ) : (
+                  <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!newMemberName.trim()) return;
+                    const newMember = {
+                      id: 'm-' + Date.now(),
+                      name: newMemberName.trim(),
+                      role: 'member' as const,
+                      avatarUrl: newMemberAvatar
+                    };
+                    onUpdateFamilyMembers([...familyData.members, newMember]);
+                    setNewMemberName('');
+                  }}
+                  className="border-t border-slate-100 pt-4 flex flex-col gap-3.5"
                 >
-                  Agregar Integrante ➕
-                </button>
-              </form>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">¿Añadir Integrante?</p>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-400">Nombre o Apodo</label>
+                    <input
+                      type="text"
+                      required
+                      value={newMemberName}
+                      onChange={(e) => setNewMemberName(e.target.value)}
+                      placeholder="Ej. Mamá, Carlos, Manuelita"
+                      className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold outline-none focus:border-indigo-500 placeholder-slate-400"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-400">Seleccionar Avatar</label>
+                    <div className="flex gap-2 overflow-x-auto py-2">
+                      {avatarSeeds.map((seed) => {
+                        const url = `https://api.dicebear.com/9.x/micah/svg?seed=${seed}&backgroundColor=e2e8f0`;
+                        return (
+                          <button
+                            key={seed}
+                            type="button"
+                            onClick={() => setNewMemberAvatar(url)}
+                            className={`w-12 h-12 p-1.5 rounded-full border-2 flex-shrink-0 transition-all cursor-pointer ${
+                              newMemberAvatar === url 
+                                ? 'border-indigo-600 bg-indigo-50 shadow-md ring-2 ring-indigo-500/20' 
+                                : 'border-slate-200 hover:bg-slate-50 bg-white'
+                            }`}
+                          >
+                            <img src={url} alt={seed} className="w-full h-full object-cover rounded-full" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-xs font-black shadow-md mt-1 transition-all"
+                  >
+                    Agregar Integrante ➕
+                  </button>
+                </form>
+                )}
+              </>
             )}
 
           </motion.div>
