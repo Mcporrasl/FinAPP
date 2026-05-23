@@ -178,7 +178,7 @@ service cloud.firestore {
     // --- Users Collection ---
     match /users/{userId} {
       allow read: if isSignedIn() && request.auth.uid == userId;
-      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUser(incoming()) && incoming().keys().size() <= 7;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUser(incoming()) && incoming().keys().hasOnly(['uid', 'name', 'currency', 'activeAvatarId', 'isFamilyMode', 'hasCompletedOnboarding', 'createdAt']);
       allow update: if (isSignedIn() && request.auth.uid == userId && isValidId(userId) 
         && isValidUserUpdate(incoming()) 
         && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'currency', 'activeAvatarId', 'isFamilyMode', 'hasCompletedOnboarding']));
@@ -186,13 +186,13 @@ service cloud.firestore {
 
       match /transactions/{transactionId} {
         allow read, list: if isSignedIn() && request.auth.uid == userId;
-        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(transactionId) && isValidTransaction(incoming(), userId) && incoming().keys().size() <= 10 && exists(/databases/$(database)/documents/users/$(userId));
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(transactionId) && isValidTransaction(incoming(), userId) && incoming().keys().hasOnly(['id', 'userId', 'type', 'amount', 'category', 'description', 'date', 'icon', 'createdAt', 'createdBy', 'createdByAvatar']);
         allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(transactionId) && existing().userId == request.auth.uid;
       }
       
       match /goals/{goalId} {
         allow read, list: if isSignedIn() && request.auth.uid == userId;
-        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(goalId) && isValidGoal(incoming(), userId) && incoming().keys().size() == 10 && exists(/databases/$(database)/documents/users/$(userId));
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(goalId) && isValidGoal(incoming(), userId) && incoming().keys().hasOnly(['id', 'userId', 'title', 'type', 'description', 'icon', 'currentAmount', 'targetAmount', 'completed', 'dateCreated', 'createdAt']);
         allow update: if (isSignedIn() && request.auth.uid == userId && isValidId(goalId) 
           && isValidGoalUpdate(incoming(), userId) 
           && incoming().diff(existing()).affectedKeys().hasOnly(['currentAmount', 'completed', 'title', 'description', 'icon', 'targetAmount']));
@@ -204,7 +204,7 @@ service cloud.firestore {
     match /families/{familyId} {
       allow read: if isSignedIn();
       allow list: if isSignedIn() && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId));
-      allow create: if isSignedIn() && isValidId(familyId) && isValidFamily(incoming()) && incoming().keys().size() == 4;
+      allow create: if isSignedIn() && isValidId(familyId) && isValidFamily(incoming()) && incoming().keys().hasOnly(['ownerId', 'name', 'inviteCode', 'createdAt']);
       allow update: if (isSignedIn() && isValidId(familyId) && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId)) 
           && isValidFamilyUpdate(incoming()) 
           && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'inviteCode']));
@@ -212,7 +212,7 @@ service cloud.firestore {
 
       match /members/{memberId} {
          allow read, list: if isSignedIn() && (get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid || isMemberOfFamily(familyId));
-         allow create: if isSignedIn() && isValidId(memberId) && memberId == request.auth.uid && isValidFamilyMember(incoming()) && incoming().keys().size() == 4 && exists(/databases/$(database)/documents/families/$(familyId));
+         allow create: if isSignedIn() && isValidId(memberId) && memberId == request.auth.uid && isValidFamilyMember(incoming()) && incoming().keys().hasOnly(['id', 'name', 'role', 'avatarUrl', 'createdAt']);
          allow update: if (isSignedIn() && isValidId(memberId) && (memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid)
             && isValidFamilyMemberUpdate(incoming())
             && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'avatarUrl']));
@@ -221,7 +221,7 @@ service cloud.firestore {
 
       match /transactions/{transactionId} {
         allow read, list: if isSignedIn() && isMemberOfFamily(familyId);
-        allow create: if isSignedIn() && isMemberOfFamily(familyId) && isValidId(transactionId) && isValidFamilyTransaction(incoming(), familyId) && incoming().keys().size() <= 10 && exists(/databases/$(database)/documents/families/$(familyId));
+        allow create: if isSignedIn() && isMemberOfFamily(familyId) && isValidId(transactionId) && isValidFamilyTransaction(incoming(), familyId) && incoming().keys().hasOnly(['id', 'familyId', 'type', 'amount', 'category', 'description', 'date', 'icon', 'createdAt', 'createdBy', 'createdByAvatar']);
         allow update: if (isSignedIn() && isMemberOfFamily(familyId) && isValidId(transactionId)
           && isValidFamilyTransactionUpdate(incoming(), familyId)
           && incoming().diff(existing()).affectedKeys().hasOnly(['amount', 'description', 'icon', 'category', 'type', 'createdBy', 'createdByAvatar']));
@@ -230,7 +230,7 @@ service cloud.firestore {
 
       match /goals/{goalId} {
         allow read, list: if isSignedIn() && isMemberOfFamily(familyId);
-        allow create: if isSignedIn() && isMemberOfFamily(familyId) && isValidId(goalId) && isValidFamilyGoal(incoming(), familyId) && incoming().keys().size() == 10 && exists(/databases/$(database)/documents/families/$(familyId));
+        allow create: if isSignedIn() && isMemberOfFamily(familyId) && isValidId(goalId) && isValidFamilyGoal(incoming(), familyId) && incoming().keys().hasOnly(['id', 'familyId', 'title', 'type', 'description', 'icon', 'currentAmount', 'targetAmount', 'completed', 'dateCreated', 'createdAt']);
         allow update: if (isSignedIn() && isMemberOfFamily(familyId) && isValidId(goalId)
            && isValidFamilyGoalUpdate(incoming(), familyId)
            && incoming().diff(existing()).affectedKeys().hasOnly(['currentAmount', 'completed', 'title', 'description', 'icon', 'targetAmount']));

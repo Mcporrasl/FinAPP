@@ -100,15 +100,20 @@ export function AddTab({ onAddTransaction, isFamilyMode, familyData }: AddTabPro
       ? familyData.members.find(m => m.id === selectedMemberId)
       : null;
 
-    onAddTransaction({
+    const txData: any = {
       type: txType,
       amount: amountVal,
       category,
       description: description.trim() || (txType === 'income' ? 'Ingreso registrado' : 'Gasto registrado'),
-      icon,
-      createdBy: activeMember ? activeMember.name : undefined,
-      createdByAvatar: activeMember ? activeMember.avatarUrl : undefined
-    }, isFamilyMode && txType === 'income' ? personalCategory : undefined);
+      icon
+    };
+
+    if (activeMember) {
+      txData.createdBy = activeMember.name;
+      txData.createdByAvatar = activeMember.avatarUrl;
+    }
+
+    onAddTransaction(txData, isFamilyMode && txType === 'income' ? personalCategory : undefined);
 
     setShowSuccess(true);
     setAmountStr('0');
