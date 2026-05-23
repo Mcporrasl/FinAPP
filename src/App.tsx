@@ -161,17 +161,26 @@ export default function App() {
               hasCompletedOnboarding: false,
               createdAt: new Date().toISOString()
             });
+            setIsFamilyMode(false);
+            setFamilyData(null);
+            setHasCompletedOnboarding(false);
           } else {
             const data = userSnap.data();
             setUserName(data.name || user.displayName || 'Usuario');
             setCurrency(data.currency || 'COP');
             const matchingAvatar = AVATAR_OPTIONS.find(a => a.id === data.activeAvatarId);
             if (matchingAvatar) setActiveAvatar(matchingAvatar);
+            
             if (data.isFamilyMode !== undefined) setIsFamilyMode(data.isFamilyMode);
+            else setIsFamilyMode(false);
+            
             if (data.hasCompletedOnboarding !== undefined) {
               setHasCompletedOnboarding(data.hasCompletedOnboarding);
               localStorage.setItem('fin_onboarded', String(data.hasCompletedOnboarding));
+            } else {
+              setHasCompletedOnboarding(false);
             }
+            
             if (data.familyId && data.isFamilyMode) {
               // Fetch Family data using stored ID
               const fRef = doc(db, 'families', data.familyId);
@@ -187,7 +196,11 @@ export default function App() {
                     members: members as any
                   });
                 }
+              } else {
+                setFamilyData(null);
               }
+            } else {
+              setFamilyData(null);
             }
           }
           setIsProfileLoaded(true);
@@ -196,6 +209,14 @@ export default function App() {
         }
       } else {
         setIsProfileLoaded(false);
+        setIsFamilyMode(false);
+        setFamilyData(null);
+        setHasCompletedOnboarding(false);
+        setTransactions([]);
+        setGoals([]);
+        setFamilyTransactions([]);
+        setFamilyGoals([]);
+        localStorage.clear();
       }
       setIsAuthChecking(false);
     });
@@ -211,7 +232,11 @@ export default function App() {
       localStorage.setItem('fin_transactions', JSON.stringify(transactions));
       localStorage.setItem('fin_goals', JSON.stringify(goals));
       localStorage.setItem('fin_family_mode', String(isFamilyMode));
-      if (familyData) localStorage.setItem('fin_family_data', JSON.stringify(familyData));
+      if (familyData) {
+        localStorage.setItem('fin_family_data', JSON.stringify(familyData));
+      } else {
+        localStorage.removeItem('fin_family_data');
+      }
       localStorage.setItem('fin_family_tx', JSON.stringify(familyTransactions));
       localStorage.setItem('fin_family_goals', JSON.stringify(familyGoals));
     }
@@ -361,8 +386,8 @@ export default function App() {
         ...baseTx, 
         id: ftxRef.id,
         familyId: familyData.id,
-        createdBy: userName,
-        createdByAvatar: activeAvatar.imageUrl
+        createdBy: txData.createdBy || userName,
+        createdByAvatar: txData.createdByAvatar || activeAvatar.imageUrl
       }).catch(console.error);
       
       if (txData.type === 'income') {
