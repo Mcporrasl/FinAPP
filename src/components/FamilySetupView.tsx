@@ -5,10 +5,11 @@ interface FamilySetupViewProps {
   onFamilyCreated: (family: FamilyData) => void;
   onFamilyJoined: (inviteCode: string) => void;
   onCancel: () => void;
+  isPro?: boolean;
 }
 
-export function FamilySetupView({ onFamilyCreated, onFamilyJoined, onCancel }: FamilySetupViewProps) {
-  const [mode, setMode] = useState<'create' | 'join'>('create');
+export function FamilySetupView({ onFamilyCreated, onFamilyJoined, onCancel, isPro = false }: FamilySetupViewProps) {
+  const [mode, setMode] = useState<'create' | 'join'>(isPro ? 'create' : 'join');
   const [familyName, setFamilyName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   
@@ -43,26 +44,33 @@ export function FamilySetupView({ onFamilyCreated, onFamilyJoined, onCancel }: F
           Comparte gastos, organiza metas comunes y mejora la administración del hogar junto a tu familia.
         </p>
 
-        <div className="flex bg-slate-100 rounded-xl p-1 mb-6">
-          <button
-            type="button"
-            onClick={() => setMode('create')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-              mode === 'create' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Crear Familia
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('join')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-              mode === 'join' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Unirse con Código
-          </button>
-        </div>
+        {isPro ? (
+          <div className="flex bg-slate-100 rounded-xl p-1 mb-6">
+            <button
+              type="button"
+              onClick={() => setMode('create')}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                mode === 'create' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Crear Familia
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('join')}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                mode === 'join' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Unirse con Código
+            </button>
+          </div>
+        ) : (
+          <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 p-3 rounded-lg text-[10px] sm:text-xs font-bold text-center mb-6">
+            <span className="material-symbols-outlined align-middle mr-1 text-[16px]">info</span>
+            Eres usuario Free. Pásate a Pro para Crear una familia, o Ingresa un Código para unirte a una.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-left">
           {mode === 'create' ? (

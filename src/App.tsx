@@ -820,6 +820,7 @@ export default function App() {
       <main className="max-w-base lg:max-w-lg mx-auto px-4 py-4 w-full flex flex-col items-center">
         {isFamilyMode && !familyData ? (
           <FamilySetupView 
+            isPro={subscriptionTier !== 'free'}
             onFamilyCreated={handleCreateFamily} 
             onFamilyJoined={handleJoinFamily}
             onCancel={() => setIsFamilyMode(false)}
@@ -940,14 +941,7 @@ export default function App() {
           }} 
           isFamilyMode={isFamilyMode}
           toggleFamilyMode={() => {
-            if (!isFamilyMode && subscriptionTier === 'free') {
-              setActiveTab('subscription');
-              setRewardMessage('⭐ Pásate a Pro para usar el Modo Familiar');
-              setShowRewardNotification(true);
-              setTimeout(() => setShowRewardNotification(false), 3000);
-            } else {
-              setIsFamilyMode(!isFamilyMode);
-            }
+            setIsFamilyMode(!isFamilyMode);
           }}
         />
       )}
