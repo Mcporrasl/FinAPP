@@ -65,31 +65,31 @@ export const AVATAR_OPTIONS: AvatarOption[] = [
   {
     id: 'avatar-1',
     name: 'Hombre',
-    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Felix&backgroundColor=b6e3f4',
+    imageUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2I2ZTNmNCIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+RqDwvdGV4dD48L3N2Zz4=',
     animationClass: ''
   },
   {
     id: 'avatar-2',
     name: 'Mujer',
-    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Aneka&backgroundColor=c0aede',
+    imageUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2MwYWVkZSIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+RqTwvdGV4dD48L3N2Zz4=',
     animationClass: ''
   },
   {
     id: 'avatar-3',
     name: 'Niño',
-    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Leo&backgroundColor=ffdfbf',
+    imageUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZmZGZiZiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+RpjwvdGV4dD48L3N2Zz4=',
     animationClass: ''
   },
   {
     id: 'avatar-4',
     name: 'Niña',
-    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Destiny&backgroundColor=d1d4f9',
+    imageUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2QxZDRmOSIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+RpzwvdGV4dD48L3N2Zz4=',
     animationClass: ''
   },
   {
     id: 'avatar-5',
     name: 'Abuela',
-    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Lilly&backgroundColor=e2e8f0',
+    imageUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2UyZThmMCIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+RtTwvdGV4dD48L3N2Zz4=',
     animationClass: ''
   }
 ];
