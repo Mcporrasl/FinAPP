@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { doc, updateDoc, getDoc, setDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -23,53 +23,74 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
     pro_lifetime: { label: 'Vitalicia', priceCOP: 259900, cents: 25990000, desc: 'Paga una sola vez y disfruta de FinAPP Pro para siempre.' },
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    const env = params.get('env');
+    
+    if (id) {
+       verifyWompiTransaction(id, env || 'prod');
+    }
+  }, []);
+
+  const verifyWompiTransaction = async (txId: string, env: string) => {
+    setLoading('verifying');
+    try {
+       const url = env === 'test' ? `https://sandbox.wompi.co/v1/transactions/${txId}` : `https://production.wompi.co/v1/transactions/${txId}`;
+       const res = await fetch(url);
+       if (res.ok) {
+          const data = await res.json();
+          const tx = data.data;
+          
+          if (tx.status === 'APPROVED') {
+             const parts = tx.reference.split('-');
+             if (parts.length >= 4 && parts[0] === 'FINAPP') {
+                const tier = parts[1] as SubscriptionTier; 
+                
+                const userRef = doc(db, 'users', userId);
+                const updates: any = { subscriptionTier: tier };
+                if (tier === 'pro_monthly' || tier === 'pro_annual') {
+                   const expiration = new Date();
+                   expiration.setDate(expiration.getDate() + (tier === 'pro_monthly' ? 30 : 365));
+                   updates.subscriptionExpiresAt = expiration.toISOString();
+                } else {
+                   updates.subscriptionExpiresAt = null;
+                }
+                
+                await setDoc(userRef, updates, { merge: true });
+                onUpgrade(tier);
+                alert('¡Pago Exitoso con Wompi! Disfruta de FinAPP Pro.');
+             }
+          } else {
+             alert(`El pago está en estado: ${tx.status}`);
+          }
+       }
+    } catch (e) {
+       console.error("Error verificando tx wompi:", e);
+    } finally {
+       setLoading(null);
+       window.history.replaceState({}, '', '/?tab=subscription');
+    }
+  };
+
   const handleWompiCheckout = async (tier: SubscriptionTier) => {
     setLoading(tier);
-    // Simular el inicio de pago o redirigir a Wompi
     const publicKey = import.meta.env.VITE_WOMPI_PUBLIC_KEY;
     
-    if (!publicKey || publicKey.includes('pub_test_')) {
-      // Modo Demo: Simular el pago si no hay llaves reales configuradas
-      setTimeout(async () => {
-        try {
-          const userRef = doc(db, 'users', userId);
-          const updates: any = { subscriptionTier: tier };
-          
-          if (tier === 'pro_monthly' || tier === 'pro_annual') {
-            const expiration = new Date();
-            if (tier === 'pro_monthly') {
-               expiration.setDate(expiration.getDate() + 30);
-            } else {
-               expiration.setDate(expiration.getDate() + 365);
-            }
-            updates.subscriptionExpiresAt = expiration.toISOString();
-          } else {
-             updates.subscriptionExpiresAt = null;
-          }
-          
-          await setDoc(userRef, updates, { merge: true });
-          onUpgrade(tier);
-          alert('¡Pago Simulado Exitoso con Wompi!');
-        } catch (e) {
-          console.error(e);
-          alert('Error actualizando suscripción.');
-        } finally {
-          setLoading(null);
-        }
-      }, 1500);
+    if (!publicKey) {
+      alert("La llave pública de Wompi no está configurada.");
+      setLoading(null);
       return;
     }
 
     // Integración real Web Checkout Wompi
-    const reference = `FINAPP_${userId}_${Date.now()}`;
+    const reference = `FINAPP-${tier}-${userId}-${Date.now()}`;
     const amountInCents = plans[tier as keyof typeof plans].cents;
-    const redirectUrl = window.location.origin; // O una URL específica de éxito
+    const redirectUrl = window.location.origin + window.location.pathname + '?tab=subscription';
     
-    const checkoutUrl = `https://checkout.wompi.co/p/?public-key=${publicKey}&currency=COP&amount-in-cents=${amountInCents}&reference=${reference}&redirect-url=${redirectUrl}`;
+    const checkoutUrl = `https://checkout.wompi.co/p/?public-key=${publicKey}&currency=COP&amount-in-cents=${amountInCents}&reference=${reference}&redirect-url=${encodeURIComponent(redirectUrl)}`;
     
-    // Si quisieras usar firma (signature), primero llamaríamos a tu backend /api/wompi/signature para obtenerla
-    
-    window.open(checkoutUrl, '_blank');
+    window.location.href = checkoutUrl;
   };
 
   const handleRedeemCoupon = async (e: React.FormEvent) => {

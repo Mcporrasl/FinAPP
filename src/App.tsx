@@ -89,7 +89,11 @@ export default function App() {
   });
 
   // --- Main Application State ---
-  const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('id') || params.get('tab') === 'subscription') return 'subscription';
+    return (params.get('tab') as TabType) || 'home';
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showRewardNotification, setShowRewardNotification] = useState(false);
   const [rewardMessage, setRewardMessage] = useState('');
