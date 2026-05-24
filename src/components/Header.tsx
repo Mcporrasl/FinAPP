@@ -8,9 +8,10 @@ interface HeaderProps {
   subscriptionTier: SubscriptionTier;
   onOpenSettings: () => void;
   onOpenSubscription: () => void;
+  onOpenCalendar: () => void;
 }
 
-export function Header({ currentAvatar, isFamilyMode, onOpenSettings, subscriptionTier, onOpenSubscription }: HeaderProps) {
+export function Header({ currentAvatar, isFamilyMode, onOpenSettings, subscriptionTier, onOpenSubscription, onOpenCalendar }: HeaderProps) {
   const isPro = subscriptionTier !== 'free';
 
   return (
@@ -39,6 +40,7 @@ export function Header({ currentAvatar, isFamilyMode, onOpenSettings, subscripti
         {/* Title */}
         <div 
           id="app-title"
+          onClick={onOpenCalendar}
           className="flex items-center gap-2 select-none cursor-pointer active:scale-98 transition-transform flex-col justify-center"
         >
           <div className="flex items-center gap-2">

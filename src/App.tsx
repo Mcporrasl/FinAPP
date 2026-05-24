@@ -6,6 +6,7 @@ import { HomeTab } from './components/HomeTab';
 import { AddTab } from './components/AddTab';
 import { DreamsTab } from './components/DreamsTab'; // Acts as GoalsTab
 import { PathTab } from './components/PathTab';     // Acts as HistoryTab
+import { CalendarTab } from './components/CalendarTab';
 import { SubscriptionTab } from './components/SubscriptionTab';
 import { SettingsModal } from './components/SettingsModal';
 import { FamilySetupView } from './components/FamilySetupView';
@@ -815,6 +816,16 @@ export default function App() {
         subscriptionTier={subscriptionTier as any}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenSubscription={() => setActiveTab('subscription')}
+        onOpenCalendar={() => {
+          if (subscriptionTier === 'free') {
+            setActiveTab('subscription');
+            setRewardMessage('🔒 Hazte Pro para usar el Calendario de Movimientos');
+            setShowRewardNotification(true);
+            setTimeout(() => setShowRewardNotification(false), 3000);
+          } else {
+            setActiveTab('calendar');
+          }
+        }}
       />
 
       <main className="max-w-base lg:max-w-lg mx-auto px-4 py-4 w-full flex flex-col items-center">
@@ -913,6 +924,22 @@ export default function App() {
                   <PathTab
                     transactions={currentTransactions}
                     onDeleteTransaction={handleDeleteTransaction}
+                  />
+                </motion.div>
+              )}
+
+              {activeTab === 'calendar' && (
+                <motion.div
+                  key="calendar"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <CalendarTab
+                    transactions={currentTransactions}
+                    onDeleteTransaction={handleDeleteTransaction}
+                    currency={currency}
                   />
                 </motion.div>
               )}

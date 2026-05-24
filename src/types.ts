@@ -52,7 +52,7 @@ export interface FamilyData {
 
 export type SubscriptionTier = 'free' | 'pro_monthly' | 'pro_annual' | 'pro_lifetime';
 
-export type TabType = 'home' | 'goals' | 'add' | 'history' | 'subscription';
+export type TabType = 'home' | 'goals' | 'add' | 'history' | 'subscription' | 'calendar';
 
 export interface AvatarOption {
   id: string;
