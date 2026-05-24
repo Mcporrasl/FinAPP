@@ -220,7 +220,7 @@ service cloud.firestore {
       allow delete: if false;
 
       match /members/{memberId} {
-         allow read, list: if isSignedIn() && (get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid || isMemberOfFamily(familyId));
+         allow read, list: if isSignedIn();
          allow create: if isSignedIn() && isValidId(memberId) && (memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid) && isValidFamilyMember(incoming()) && incoming().keys().hasOnly(['id', 'name', 'role', 'avatarUrl', 'createdAt']);
          allow update: if (isSignedIn() && isValidId(memberId) && (memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid)
             && isValidFamilyMemberUpdate(incoming())

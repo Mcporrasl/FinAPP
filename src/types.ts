@@ -65,31 +65,31 @@ export const AVATAR_OPTIONS: AvatarOption[] = [
   {
     id: 'avatar-1',
     name: 'Hombre',
-    imageUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=H1&top=shortHair&facialHair=beardLight&backgroundColor=b6e3f4',
+    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Felix&backgroundColor=b6e3f4',
     animationClass: ''
   },
   {
     id: 'avatar-2',
     name: 'Mujer',
-    imageUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=M1&top=longHairStraight&backgroundColor=c0aede',
+    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Aneka&backgroundColor=c0aede',
     animationClass: ''
   },
   {
     id: 'avatar-3',
     name: 'Niño',
-    imageUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=K1&top=shortHairShortFlat&facialHair=default&backgroundColor=ffdfbf',
+    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Leo&backgroundColor=ffdfbf',
     animationClass: ''
   },
   {
     id: 'avatar-4',
     name: 'Niña',
-    imageUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=K2&top=longHairMiaWallace&backgroundColor=d1d4f9',
+    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Destiny&backgroundColor=d1d4f9',
     animationClass: ''
   },
   {
     id: 'avatar-5',
     name: 'Abuela',
-    imageUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=G1&top=longHairBun&hairColor=platinum&backgroundColor=e2e8f0',
+    imageUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Lilly&backgroundColor=e2e8f0',
     animationClass: ''
   }
 ];
