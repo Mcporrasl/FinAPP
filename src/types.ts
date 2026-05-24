@@ -17,6 +17,7 @@ export interface Transaction {
   createdAt?: string;
   userId?: string;
   familyId?: string;
+  linkedGoalId?: string;
 }
 
 export type GoalType = 'DEBT' | 'SAVINGS';

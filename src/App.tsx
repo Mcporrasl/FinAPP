@@ -541,7 +541,8 @@ export default function App() {
         description: `Abono a: ${targetGoal.title}`,
         date: 'Hoy',
         icon: 'account_balance',
-        createdAt: tDate
+        createdAt: tDate,
+        linkedGoalId: goalId
      };
      
      if (isFam) {
@@ -644,24 +645,56 @@ export default function App() {
     setIsFamilyMode(false);
   };
 
-  const handleDeleteTransaction = (id: string) => {
+  const handleDeleteTransaction = async (id: string) => {
     if (!currentUser) return;
     
-    if (isFamilyMode && familyData) {
-      // Find in family
-      const ftxRef = doc(db, 'families', familyData.id, 'transactions', id);
-      deleteDoc(ftxRef).catch(console.error);
-    } else {
-      // Find in personal
-      const ptxRef = doc(db, 'users', currentUser.uid, 'transactions', id);
-      deleteDoc(ptxRef).catch(console.error);
+    try {
+      let txRef;
+
+      if (isFamilyMode && familyData) {
+        txRef = doc(db, 'families', familyData.id, 'transactions', id);
+      } else {
+        txRef = doc(db, 'users', currentUser.uid, 'transactions', id);
+      }
+
+      const txSnap = await getDoc(txRef);
+      if (txSnap.exists()) {
+        const txData = txSnap.data() as Transaction;
+        
+        let targetGoalId = txData.linkedGoalId;
+        if (!targetGoalId && txData.description.startsWith('Abono a: ')) {
+          const goalTitle = txData.description.replace('Abono a: ', '');
+          const targetGoalList = (isFamilyMode && familyData) ? familyGoals : goals;
+          const found = targetGoalList.find(g => g.title === goalTitle);
+          if (found) targetGoalId = found.id;
+        }
+
+        if (targetGoalId) {
+          const targetGoalList = (isFamilyMode && familyData) ? familyGoals : goals;
+          const targetGoal = targetGoalList.find(g => g.id === targetGoalId);
+          if (targetGoal) {
+            const updatedAmount = Math.max(0, targetGoal.currentAmount - txData.amount);
+            if (isFamilyMode && familyData) {
+              const fgRef = doc(db, 'families', familyData.id, 'goals', targetGoal.id);
+              await updateDoc(fgRef, { currentAmount: updatedAmount, completed: false });
+            } else {
+              const gRef = doc(db, 'users', currentUser.uid, 'goals', targetGoal.id);
+              await updateDoc(gRef, { currentAmount: updatedAmount, completed: false });
+            }
+          }
+        }
+        
+        await deleteDoc(txRef);
+      }
+      
+      setRewardMessage('🗑️ Movimiento eliminado');
+      setShowRewardNotification(true);
+      setTimeout(() => {
+        setShowRewardNotification(false);
+      }, 2000);
+    } catch (e) {
+      console.error(e);
     }
-    
-    setRewardMessage('🗑️ Movimiento eliminado');
-    setShowRewardNotification(true);
-    setTimeout(() => {
-      setShowRewardNotification(false);
-    }, 2000);
   };
 
   const handleCreateFamily = async (data: FamilyData) => {

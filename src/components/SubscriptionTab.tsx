@@ -78,7 +78,7 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
     const publicKey = import.meta.env.VITE_WOMPI_PUBLIC_KEY;
     
     if (!publicKey) {
-      alert("La llave pública de Wompi no está configurada.");
+      alert("La llave pública de Wompi no está configurada. Por favor, añádela en la configuración (Variables de Entorno).");
       setLoading(null);
       return;
     }
