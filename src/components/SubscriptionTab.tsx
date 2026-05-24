@@ -47,7 +47,7 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
              updates.subscriptionExpiresAt = null;
           }
           
-          await updateDoc(userRef, updates);
+          await setDoc(userRef, updates, { merge: true });
           onUpgrade(tier);
           alert('¡Pago Simulado Exitoso con Wompi!');
         } catch (e) {
