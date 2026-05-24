@@ -218,7 +218,7 @@ export default function App() {
               setHasCompletedOnboarding(false);
             }
             
-            if (data.familyId && data.isFamilyMode) {
+            if (data.familyId) {
               // Fetch Family data using stored ID
               const fRef = doc(db, 'families', data.familyId);
               const fSnap = await getDoc(fRef).catch(console.error);
@@ -283,15 +283,20 @@ export default function App() {
   useEffect(() => {
     if (currentUser && !isAuthChecking && isProfileLoaded) {
       const userRef = doc(db, 'users', currentUser.uid);
-      setDoc(userRef, {
+      const payload: any = {
         name: userName,
         currency: currency,
         activeAvatarId: activeAvatar.id,
         isFamilyMode: isFamilyMode,
         hasCompletedOnboarding: hasCompletedOnboarding
-      }, { merge: true }).catch(console.error);
+      };
+      if (familyData && familyData.id) {
+        payload.familyId = familyData.id;
+      }
+      setDoc(userRef, payload, { merge: true }).catch(console.error);
     }
-  }, [userName, currency, activeAvatar, isFamilyMode, hasCompletedOnboarding, currentUser, isAuthChecking, isProfileLoaded]);
+  }, [userName, currency, activeAvatar, isFamilyMode, hasCompletedOnboarding, currentUser, isAuthChecking, isProfileLoaded, familyData?.id]);
+
 
   // Firestore Subscriptions
   useEffect(() => {
@@ -354,7 +359,7 @@ export default function App() {
 
   // Family Subscriptions
   useEffect(() => {
-    if (!currentUser || isAuthChecking || !isProfileLoaded || !isFamilyMode || !familyData?.id) return;
+    if (!currentUser || isAuthChecking || !isProfileLoaded || !familyData?.id) return;
     
     const familyId = familyData.id;
 

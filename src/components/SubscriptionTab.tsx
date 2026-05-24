@@ -69,7 +69,7 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
     
     // Si quisieras usar firma (signature), primero llamaríamos a tu backend /api/wompi/signature para obtenerla
     
-    window.location.href = checkoutUrl;
+    window.open(checkoutUrl, '_blank');
   };
 
   const handleRedeemCoupon = async (e: React.FormEvent) => {
