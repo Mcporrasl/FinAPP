@@ -16,7 +16,7 @@ async function startServer() {
   // Endpoint para exponer configuración pública en producción de forma dinámica
   app.get("/api/config", (req, res) => {
     res.json({
-      wompiPublicKey: process.env.VITE_WOMPI_PUBLIC_KEY || process.env.WOMPI_PUBLIC_KEY || null
+      wompiPublicKey: process.env.VITE_WOMPI_PUBLIC_KEY || process.env.WOMPI_PUBLIC_KEY || "pub_prod_Y2FkIPaXDNlWN4lxJzL8mh45ySxNMYT9"
     });
   });
 
@@ -24,10 +24,8 @@ async function startServer() {
   app.post("/api/wompi/signature", (req, res) => {
     try {
       const { reference, amountInCents, currency } = req.body;
-      const secret = process.env.WOMPI_INTEGRITY_SECRET;
+      const secret = process.env.WOMPI_INTEGRITY_SECRET || "prod_integrity_YxVMOpEpnEqtBXUh1I09Si8xKxSsQrd3";
       
-      if (!secret) return res.json({ signature: null }); // Si no hay secret, podemos seguir sin firma (solo test)
-
       const concatString = `${reference}${amountInCents}${currency}${secret}`;
       const hash = crypto.createHash('sha256').update(concatString).digest('hex');
       

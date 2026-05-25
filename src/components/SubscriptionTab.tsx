@@ -55,7 +55,7 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
   const verifyWompiTransaction = async (txId: string, env: string) => {
     setLoading('verifying');
     try {
-       const publicKey = liveWompiPublicKey || import.meta.env.VITE_WOMPI_PUBLIC_KEY;
+       const publicKey = liveWompiPublicKey || import.meta.env.VITE_WOMPI_PUBLIC_KEY || "pub_prod_Y2FkIPaXDNlWN4lxJzL8mh45ySxNMYT9";
        const isProd = publicKey ? publicKey.startsWith('pub_prod_') : (env !== 'test');
        const url = isProd ? `https://production.wompi.co/v1/transactions/${txId}` : `https://sandbox.wompi.co/v1/transactions/${txId}`;
        const res = await fetch(url);
@@ -95,14 +95,8 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
   };
 
   const handleWompiCheckout = async (tier: SubscriptionTier) => {
-    const publicKey = liveWompiPublicKey || import.meta.env.VITE_WOMPI_PUBLIC_KEY;
+    const publicKey = liveWompiPublicKey || import.meta.env.VITE_WOMPI_PUBLIC_KEY || "pub_prod_Y2FkIPaXDNlWN4lxJzL8mh45ySxNMYT9";
     
-    if (!publicKey) {
-      setSelectedTier(tier);
-      setShowWompiMissingModal(true);
-      return;
-    }
-
     setLoading(tier);
 
     // Integración real Web Checkout Wompi
@@ -110,11 +104,35 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
     const amountInCents = plans[tier as keyof typeof plans].cents;
     const redirectUrl = window.location.origin + window.location.pathname + '?tab=subscription';
     
+    // Obtener firma de integridad en producción de forma dinámica
+    let signature = '';
+    try {
+      const sigRes = await fetch('/api/wompi/signature', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reference, amountInCents, currency: 'COP' })
+      });
+      if (sigRes.ok) {
+        const sigData = await sigRes.json();
+        if (sigData.signature) {
+          signature = sigData.signature;
+        }
+      }
+    } catch (err) {
+      console.error("Error al firmar transacción con Wompi:", err);
+    }
+
     const isProd = publicKey.startsWith('pub_prod_');
     const checkoutBase = isProd ? 'https://checkout.wompi.co/p/' : 'https://checkout.sandbox.wompi.co/p/';
     
-    const checkoutUrl = `${checkoutBase}?public-key=${publicKey}&currency=COP&amount-in-cents=${amountInCents}&reference=${reference}&redirect-url=${encodeURIComponent(redirectUrl)}`;
+    let checkoutUrl = `${checkoutBase}?public-key=${publicKey}&currency=COP&amount-in-cents=${amountInCents}&reference=${reference}&redirect-url=${encodeURIComponent(redirectUrl)}`;
     
+    if (signature) {
+      checkoutUrl += `&signature:integrity=${signature}`;
+    }
+
     window.location.href = checkoutUrl;
   };
 
