@@ -2,17 +2,17 @@ import { useEffect, useCallback } from 'react';
 
 export function usePushNotifications() {
   const requestPermission = useCallback(async () => {
-    if (!('Notification' in window)) {
-      console.log('Este navegador no soporta notificaciones de escritorio');
+    if (!('Notification' in window) || !window.Notification) {
+      console.log('Este navegador no soporta notificaciones de escritorio / móviles');
       return false;
     }
 
-    if (Notification.permission === 'granted') {
+    if (window.Notification.permission === 'granted') {
       return true;
     }
 
-    if (Notification.permission !== 'denied') {
-      const permission = await Notification.requestPermission();
+    if (window.Notification.permission !== 'denied') {
+      const permission = await window.Notification.requestPermission();
       return permission === 'granted';
     }
 
@@ -20,17 +20,22 @@ export function usePushNotifications() {
   }, []);
 
   const sendNotification = useCallback((title: string, options?: NotificationOptions) => {
-    if (!('Notification' in window)) return;
+    if (!('Notification' in window) || !window.Notification) return;
 
-    if (Notification.permission === 'granted') {
-      new Notification(title, options);
+    if (window.Notification.permission === 'granted') {
+      try {
+        new window.Notification(title, options);
+      } catch (e) {
+        console.warn('Notification execution failed:', e);
+      }
     }
   }, []);
 
   // Recordatorio diario
   useEffect(() => {
     const checkReminder = () => {
-      if (Notification.permission !== 'granted') return;
+      if (!('Notification' in window) || !window.Notification) return;
+      if (window.Notification.permission !== 'granted') return;
 
       const lastReminderStr = localStorage.getItem('last_expense_reminder');
       const now = Date.now();
