@@ -109,13 +109,11 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
         // Let's seed the coupons if they don't exist for demo purposes
         if (!couponDoc.exists()) {
           if (code === 'EMPMANUELITA') {
-            transaction.set(couponRef, { maxUses: 500, currentUses: 1, tier: 'pro_monthly' });
+            transaction.set(couponRef, { maxUses: 30, currentUses: 1, tier: 'pro_monthly' });
           } else if (code === 'PREMMC04') {
             transaction.set(couponRef, { maxUses: 50, currentUses: 1, tier: 'pro_lifetime' });
           } else if (code === 'DEMO') {
             transaction.set(couponRef, { maxUses: 1, currentUses: 1, tier: 'pro_monthly', trialDays: 30 });
-          } else if (['COLSUBSIDIO2026', 'PROTECCION_PRO', 'FINAPP_FAMILIA'].includes(code)) {
-            transaction.set(couponRef, { maxUses: 1000, currentUses: 1, tier: 'pro_annual' });
           } else {
             throw new Error("InvalidCoupon");
           }
@@ -178,7 +176,7 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
         <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4 z-10">
           <span className="material-symbols-outlined text-[32px] text-amber-400">workspace_premium</span>
         </div>
-        <h2 className="text-2xl font-black mb-2 tracking-tight z-10">FinAPP Pro</h2>
+        <h2 className="text-2xl font-black mb-2 tracking-tight z-10">Fin<span className="text-emerald-400">APP</span> Pro</h2>
         <p className="text-sm text-indigo-200 font-medium max-w-[280px] z-10">
           Desbloquea el modo familiar y lleva tus finanzas al siguiente nivel. Pagos seguros vía Wompi.
         </p>
@@ -243,7 +241,7 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
               <div className="flex flex-col items-center text-center gap-2">
                 <span className="material-symbols-outlined text-slate-400 text-3xl">redeem</span>
                 <h4 className="text-sm font-bold text-slate-700">¿Tienes un código de convenio?</h4>
-                <p className="text-xs text-slate-500 mb-2">Ingresa el cupón entregado por tu empresa (ej. Compensar, Colsubsidio) para obtener acceso gratuito.</p>
+                <p className="text-xs text-slate-500 mb-2">Ingresa el cupón entregado por tu empresa (ej. Ing. Manuelita, USC, UNAD, DAXTREM) para obtener acceso gratuito.</p>
                 <button 
                   onClick={() => setShowCouponInput(true)}
                   className="text-indigo-600 font-bold text-xs hover:underline"
@@ -260,7 +258,7 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
                   type="text" 
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
-                  placeholder="Ej. COLSUBSIDIO2026"
+                  placeholder="Ej. DAXTREM"
                   className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 uppercase focus:border-indigo-500 outline-none"
                 />
                 {couponError && <p className="text-xs text-red-500 font-bold">{couponError}</p>}

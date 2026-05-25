@@ -33,13 +33,31 @@ async function startServer() {
 
   // Wompi Webhook handler
   app.post("/api/wompi/webhook", (req, res) => {
-    // Aquí recibimos eventos asíncronos de Wompi (e.g. cuando el pago es aprobado)
-    const event = req.body.event;
-    console.log("🔔 Wompi Webhook recibido:", event);
-    
-    // Aquí actualizarías en Firestore con Firebase Admin Auth/Firestore o similar
-    
-    res.status(200).send("OK");
+    try {
+      // Verificamos la firma enviada por Wompi para asegurar la autenticidad
+      const { signature, data, timestamp } = req.body;
+      const secret = process.env.WOMPI_EVENTS_SECRET; // Secreto para Eventos
+
+      if (secret && signature && signature.checksum) {
+        const concatString = `${data.transaction.id}${data.transaction.status}${data.transaction.amount_in_cents}${timestamp}${secret}`;
+        const hash = crypto.createHash('sha256').update(concatString).digest('hex');
+        
+        if (hash !== signature.checksum) {
+          console.error("⚠️ Firma de Wompi inválida. Se rechaza el evento.");
+          return res.status(401).send("Invalid signature");
+        }
+      }
+
+      const event = req.body.event;
+      console.log("🔔 Wompi Webhook autenticado recibido:", event);
+      
+      // Aquí actualizarías en Firestore con Firebase Admin Auth/Firestore o similar
+      
+      res.status(200).send("OK");
+    } catch (error) {
+      console.error("Error procesando webhook de Wompi:", error);
+      res.status(500).send("Error de servidor");
+    }
   });
 
   // Vite middleware for development

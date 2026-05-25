@@ -1,5 +1,5 @@
 {
-  "name": "FinAPP Manuelita",
+  "name": "FinAPP - Monitorea y optimiza tus gastos",
   "description": "Herramienta de control financiero personal basada en la regla 50/30/20 para organizar ingresos, reducir deudas y planificar el ahorro.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

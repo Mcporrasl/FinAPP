@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { usePushNotifications } from './hooks/usePushNotifications';
 import { Header } from './components/Header';
 import { NavBar } from './components/NavBar';
 import { HomeTab } from './components/HomeTab';
@@ -51,6 +52,7 @@ function createStar(container: HTMLElement) {
 }
 
 export default function App() {
+  const { requestPermission, sendNotification } = usePushNotifications();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
@@ -417,14 +419,40 @@ export default function App() {
 
   // --- Callbacks ---
 
-  const handleAddTransaction = (txData: Omit<Transaction, 'id' | 'date' | 'createdAt' | 'userId' | 'familyId'>, personalCategory?: CategoryType) => {
+  const handleAddTransaction = async (txData: Omit<Transaction, 'id' | 'date' | 'createdAt' | 'userId' | 'familyId'>, personalCategory?: CategoryType) => {
     if (!currentUser) return;
     
+    // Request permission here on actual user interaction implicitly, or just rely on them granting it explicitly somewhere else
+    // But since it's a user action, we can try requesting.
+    await requestPermission();
+
     const baseTx = {
       ...txData,
       date: 'Hoy',
       createdAt: new Date().toISOString()
     };
+
+    if (txData.type === 'expense' && txData.category) {
+      const currentTransactionsList = isFamilyMode ? familyTransactions : transactions;
+      const totalIncome = currentTransactionsList.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const categoryTotal = currentTransactionsList.filter(t => t.type === 'expense' && t.category === txData.category).reduce((sum, t) => sum + t.amount, 0);
+      
+      const newTotal = categoryTotal + txData.amount;
+      
+      let budgetLimit = 0;
+      let categoryName = '';
+      if (txData.category === '50_NEEDS') { budgetLimit = totalIncome * 0.5; categoryName = 'Necesidades'; }
+      else if (txData.category === '30_WANTS') { budgetLimit = totalIncome * 0.3; categoryName = 'Deseos'; }
+      else if (txData.category === '20_SAVINGS') { budgetLimit = totalIncome * 0.2; categoryName = 'Ahorro/Deudas'; }
+
+      if (budgetLimit > 0 && (newTotal / budgetLimit) > 0.8 && (categoryTotal / budgetLimit) <= 0.8) {
+        // Only trigger if we JUST crossed the 80% mark to avoid spamming
+        sendNotification('¡Alerta de Presupuesto!', {
+          body: `Con este gasto cruzaste el 80% de tu límite ideal en ${categoryName}.`,
+          icon: '/favicon.ico'
+        });
+      }
+    }
 
     if (isFamilyMode && familyData) {
       const ftxRef = doc(collection(db, 'families', familyData.id, 'transactions'));
@@ -749,16 +777,16 @@ export default function App() {
   const handleJoinFamily = async (code: string) => {
     if (!currentUser) return;
     try {
-      const familyId = code.toUpperCase();
-      const fRef = doc(db, 'families', familyId);
-      const fDoc = await getDoc(fRef);
+      let familyId = code.toUpperCase();
       
-      if (!fDoc.exists()) {
+      // En lugar de leer el documento de la familia base (que está protegido para no-miembros),
+      // leemos la colección de members, que es "read: if isSignedIn()"
+      const memSnap = await getDocs(collection(db, 'families', familyId, 'members'));
+      
+      if (memSnap.empty) {
         alert("El código ingresado es incorrecto o la familia no existe.");
         return;
       }
-      
-      const memSnap = await getDocs(collection(db, 'families', familyId, 'members'));
       
       // Enforce the 2 members max
       if (memSnap.size >= 2) {
@@ -766,6 +794,7 @@ export default function App() {
         return;
       }
 
+      // Add user to members subcollection optimistically
       const memberRef = doc(db, 'families', familyId, 'members', currentUser.uid);
       await setDoc(memberRef, {
         id: currentUser.uid,
@@ -778,12 +807,18 @@ export default function App() {
       const finalMemSnap = await getDocs(collection(db, 'families', familyId, 'members'));
       const members = finalMemSnap.docs.map(m => ({ id: m.id, ...m.data() }));
 
-      setFamilyData({
-        id: familyId,
-        name: fDoc.data().name,
-        inviteCode: fDoc.data().inviteCode,
-        members: members as any
-      });
+      // Ahora SOMOS miembros. Ya podemos consultar el fDoc base para obtener nombre e inviteCode.
+      const fRef = doc(db, 'families', familyId);
+      const fDoc = await getDoc(fRef);
+      
+      if (fDoc.exists()) {
+        setFamilyData({
+          id: familyId,
+          name: fDoc.data().name,
+          inviteCode: fDoc.data().inviteCode,
+          members: members as any
+        });
+      }
       
       const uRef = doc(db, 'users', currentUser.uid);
       await updateDoc(uRef, { familyId: familyId, isFamilyMode: true }).catch(console.error);

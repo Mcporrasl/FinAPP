@@ -47,7 +47,7 @@ export function Header({ currentAvatar, isFamilyMode, onOpenSettings, subscripti
             <h1 
               className="font-sans text-2xl font-black tracking-tighter text-slate-900 leading-none flex items-center gap-2"
             >
-              FinAPP <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-rose-400">Manuelita</span>
+              <span>Fin<span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-green-400">APP</span></span>
               <div className="ml-1 flex items-center justify-center -mt-1"><PiggyLogo size={36} /></div>
             </h1>
           </div>

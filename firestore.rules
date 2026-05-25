@@ -213,7 +213,7 @@ service cloud.firestore {
 
     // --- Families Collection ---
     match /families/{familyId} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId));
       allow list: if isSignedIn() && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId));
       allow create: if isSignedIn() && isValidId(familyId) && isValidFamily(incoming()) && incoming().keys().hasOnly(['ownerId', 'name', 'inviteCode', 'createdAt']);
       allow update: if (isSignedIn() && isValidId(familyId) && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId)) 

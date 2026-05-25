@@ -47,7 +47,7 @@ export function AuthView({ onLogin }: AuthViewProps) {
              <PiggyLogo size={100} />
           </div>
           <h1 className="font-sans text-4xl font-black tracking-tighter text-slate-900 mb-2">
-            FinAPP <span className="text-emerald-700">Manuelita</span>
+            Fin<span className="text-emerald-500">APP</span>
           </h1>
           <p className="text-slate-500 font-bold text-sm bg-white border border-slate-200 px-4 py-1.5 rounded-full shadow-sm inline-block">Tu bienestar financiero, a tu ritmo.</p>
         </motion.div>

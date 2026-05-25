@@ -1,32 +1,32 @@
 {
-  "name": "FinAPP",
+  "name": "FinAPP - Monitorea y optimiza tus gastos",
   "short_name": "FinAPP",
-  "description": "Educacion financiera a tu alcance",
+  "description": "Monitorea y optimiza tus gastos",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1e293b",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "https://i.postimg.cc/j2CrGVRM/febbad7c-ae82-4650-998c-992262f6251c.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "https://i.postimg.cc/j2CrGVRM/febbad7c-ae82-4650-998c-992262f6251c.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-192.png",
+      "src": "https://i.postimg.cc/j2CrGVRM/febbad7c-ae82-4650-998c-992262f6251c.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "https://i.postimg.cc/j2CrGVRM/febbad7c-ae82-4650-998c-992262f6251c.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

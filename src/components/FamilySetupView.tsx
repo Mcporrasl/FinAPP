@@ -17,13 +17,15 @@ export function FamilySetupView({ onFamilyCreated, onFamilyJoined, onCancel, isP
     e.preventDefault();
     if (mode === 'create') {
       if (!familyName.trim()) return;
+      const generatedInviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       const newFamily: FamilyData = {
-        id: 'family-' + Date.now(),
+        // En handleCreateFamily, el ID que se guarda en Firebase ES el inviteCode.
+        id: generatedInviteCode, 
         name: familyName,
         members: [
           { id: 'm-1', name: 'Yo (Admin)', role: 'admin', avatarUrl: 'https://api.dicebear.com/9.x/micah/svg?seed=Admin&backgroundColor=b6e3f4' }
         ],
-        inviteCode: Math.random().toString(36).substring(2, 8).toUpperCase()
+        inviteCode: generatedInviteCode
       };
       onFamilyCreated(newFamily);
     } else {
