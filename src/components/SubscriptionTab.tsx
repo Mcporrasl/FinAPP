@@ -57,7 +57,7 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
     try {
        const publicKey = liveWompiPublicKey || import.meta.env.VITE_WOMPI_PUBLIC_KEY || "pub_prod_Y2FkIPaXDNlWN4lxJzL8mh45ySxNMYT9";
        const isProd = publicKey ? publicKey.startsWith('pub_prod_') : (env !== 'test');
-       const url = isProd ? `https://production.wompi.co/v1/transactions/${txId}` : `https://sandbox.wompi.co/v1/transactions/${txId}`;
+       const url = isProd ? `https://api.wompi.co/v1/transactions/${txId}` : `https://sandbox.wompi.co/v1/transactions/${txId}`;
        const res = await fetch(url);
        if (res.ok) {
           const data = await res.json();
