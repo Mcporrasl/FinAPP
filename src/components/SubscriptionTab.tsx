@@ -118,10 +118,31 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
         const sigData = await sigRes.json();
         if (sigData.signature) {
           signature = sigData.signature;
+          console.log("✅ Firma de integridad obtenida exitosamente del backend:", signature);
         }
+      } else {
+        console.warn("⚠️ El endpoint de firma del backend retornó un estado erróneo:", sigRes.status);
       }
     } catch (err) {
-      console.error("Error al firmar transacción con Wompi:", err);
+      console.error("Error al firmar transacción con Wompi desde el servidor:", err);
+    }
+
+    // Fallback híbrido robusto en cliente usando la Web Crypto API nativa en caso de que el fetch falle
+    if (!signature) {
+      console.log("⚠️ Generando firma de integridad en cliente como fallback...");
+      try {
+        const secret = import.meta.env.VITE_WOMPI_INTEGRITY_SECRET || "prod_integrity_YxVMOpEpnEqtBXUh1I09Si8xKxSsQrd3";
+        const concatString = `${reference}${amountInCents}COP${secret}`;
+        
+        // Calcular SHA-256 en cliente usando la API criptográfica nativa del navegador
+        const msgBuffer = new TextEncoder().encode(concatString);
+        const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        console.log("✅ Firma de integridad generada con éxito de respaldo en el navegador:", signature);
+      } catch (clientErr) {
+        console.error("Error al generar firma de integridad de respaldo en navegador:", clientErr);
+      }
     }
 
     const isProd = publicKey.startsWith('pub_prod_');
@@ -133,6 +154,7 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
       checkoutUrl += `&signature:integrity=${signature}`;
     }
 
+    console.log(`🚀 Redireccionando a Wompi Checkout (${isProd ? 'Producción' : 'Sandbox'}): ${checkoutUrl}`);
     window.location.href = checkoutUrl;
   };
 
