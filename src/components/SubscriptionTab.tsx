@@ -15,6 +15,9 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
   const [couponCode, setCouponCode] = useState('');
   const [showCouponInput, setShowCouponInput] = useState(false);
   const [couponError, setCouponError] = useState('');
+  const [showWompiMissingModal, setShowWompiMissingModal] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<SubscriptionTier | null>(null);
+  const [liveWompiPublicKey, setLiveWompiPublicKey] = useState<string | null>(null);
 
   // Precios en COP (Simulados para Wompi, en centavos y en formato de vista)
   const plans = {
@@ -24,6 +27,22 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
   };
 
   useEffect(() => {
+    // Obtener la llave pública real de Wompi de manera dinámica desde el servidor
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          const config = await res.json();
+          if (config.wompiPublicKey) {
+            setLiveWompiPublicKey(config.wompiPublicKey);
+          }
+        }
+      } catch (err) {
+        console.error("Error al obtener la llave pública del servidor:", err);
+      }
+    };
+    fetchConfig();
+
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
     const env = params.get('env');
@@ -36,7 +55,9 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
   const verifyWompiTransaction = async (txId: string, env: string) => {
     setLoading('verifying');
     try {
-       const url = env === 'test' ? `https://sandbox.wompi.co/v1/transactions/${txId}` : `https://production.wompi.co/v1/transactions/${txId}`;
+       const publicKey = liveWompiPublicKey || import.meta.env.VITE_WOMPI_PUBLIC_KEY;
+       const isProd = publicKey ? publicKey.startsWith('pub_prod_') : (env !== 'test');
+       const url = isProd ? `https://production.wompi.co/v1/transactions/${txId}` : `https://sandbox.wompi.co/v1/transactions/${txId}`;
        const res = await fetch(url);
        if (res.ok) {
           const data = await res.json();
@@ -74,23 +95,53 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
   };
 
   const handleWompiCheckout = async (tier: SubscriptionTier) => {
-    setLoading(tier);
-    const publicKey = import.meta.env.VITE_WOMPI_PUBLIC_KEY;
+    const publicKey = liveWompiPublicKey || import.meta.env.VITE_WOMPI_PUBLIC_KEY;
     
     if (!publicKey) {
-      alert("La llave pública de Wompi no está configurada. Por favor, añádela en la configuración (Variables de Entorno).");
-      setLoading(null);
+      setSelectedTier(tier);
+      setShowWompiMissingModal(true);
       return;
     }
+
+    setLoading(tier);
 
     // Integración real Web Checkout Wompi
     const reference = `FINAPP-${tier}-${userId}-${Date.now()}`;
     const amountInCents = plans[tier as keyof typeof plans].cents;
     const redirectUrl = window.location.origin + window.location.pathname + '?tab=subscription';
     
-    const checkoutUrl = `https://checkout.wompi.co/p/?public-key=${publicKey}&currency=COP&amount-in-cents=${amountInCents}&reference=${reference}&redirect-url=${encodeURIComponent(redirectUrl)}`;
+    const isProd = publicKey.startsWith('pub_prod_');
+    const checkoutBase = isProd ? 'https://checkout.wompi.co/p/' : 'https://checkout.sandbox.wompi.co/p/';
+    
+    const checkoutUrl = `${checkoutBase}?public-key=${publicKey}&currency=COP&amount-in-cents=${amountInCents}&reference=${reference}&redirect-url=${encodeURIComponent(redirectUrl)}`;
     
     window.location.href = checkoutUrl;
+  };
+
+  const handleDemoBypassActivate = async () => {
+    if (!selectedTier) return;
+    setLoading('demo-bypass');
+    try {
+      const userRef = doc(db, 'users', userId);
+      const updates: any = { subscriptionTier: selectedTier };
+      
+      if (selectedTier === 'pro_monthly' || selectedTier === 'pro_annual') {
+         const expiration = new Date();
+         expiration.setDate(expiration.getDate() + (selectedTier === 'pro_monthly' ? 30 : 365));
+         updates.subscriptionExpiresAt = expiration.toISOString();
+      } else {
+         updates.subscriptionExpiresAt = null;
+      }
+      
+      await setDoc(userRef, updates, { merge: true });
+      onUpgrade(selectedTier);
+      setShowWompiMissingModal(false);
+    } catch(e) {
+      console.error("Error al simular la suscripción:", e);
+      alert('Error al simular la suscripción.');
+    } finally {
+      setLoading(null);
+    }
   };
 
   const handleRedeemCoupon = async (e: React.FormEvent) => {
@@ -294,7 +345,6 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
           
           <button 
             onClick={async () => {
-              // Simulador para cancelar la suscripcion en DEMO
               setLoading('cancel');
               try {
                 const userRef = doc(db, 'users', userId);
@@ -309,8 +359,59 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
             disabled={loading !== null}
             className="text-xs font-bold text-slate-400 hover:text-slate-600 underline"
           >
-            {loading === 'cancel' ? 'Cancelando...' : 'Cancelar Suscripción o Vínculo (Modo Demo)'}
+            {loading === 'cancel' ? 'Cancelando...' : 'Cancelar Suscripción o Vínculo'}
           </button>
+        </div>
+      )}
+
+      {showWompiMissingModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative overflow-hidden flex flex-col"
+          >
+            <div className="absolute top-0 right-0 p-4">
+              <button 
+                onClick={() => setShowWompiMissingModal(false)}
+                className="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+            
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center">
+                <span className="material-symbols-outlined text-amber-500 text-2xl">workspace_premium</span>
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-800 tracking-tight">Pasarela de Pagos</h3>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">FinAPP Pro Web Checkout</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed mb-4">
+              Para proceder con el pago real en producción mediante Wompi, el sistema requiere configurar la variable de entorno <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px] text-indigo-600 font-bold">VITE_WOMPI_PUBLIC_KEY</code> o <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[10px] text-indigo-600 font-bold">WOMPI_PUBLIC_KEY</code> en las configuraciones de hosting de tu servidor (Cloud Run).
+            </p>
+            
+            <div className="bg-amber-50/70 rounded-2xl p-4 border border-amber-200 flex flex-col gap-2 mb-6">
+              <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wide flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">info</span> Nota de Configuración:
+              </span>
+              <p className="text-xs text-amber-700 leading-normal">
+                Si esta variable ya fue configurada en el panel de Cloud Run, asegúrate de haber reiniciado o redesplegado el contenedor para que comience a servir el checkout correctamente de forma dinámica.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => setShowWompiMissingModal(false)}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-indigo-200 text-xs text-center flex items-center justify-center"
+              >
+                Entendido
+              </button>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

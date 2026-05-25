@@ -13,6 +13,13 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Endpoint para exponer configuración pública en producción de forma dinámica
+  app.get("/api/config", (req, res) => {
+    res.json({
+      wompiPublicKey: process.env.VITE_WOMPI_PUBLIC_KEY || process.env.WOMPI_PUBLIC_KEY || null
+    });
+  });
+
   // Generar firma de integridad para Wompi (opcional pero recomendado)
   app.post("/api/wompi/signature", (req, res) => {
     try {
