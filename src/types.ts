@@ -114,8 +114,7 @@ export const INITIAL_GOALS: Goal[] = [
     currentAmount: 500000,
     targetAmount: 2000000,
     completed: false,
-    dateCreated: '2026-05-18',
-    createdAt: new Date('2026-05-18T12:00:00Z').toISOString()
+    dateCreated: '2026-05-18'
   },
   {
     id: 'goal-2',
@@ -126,8 +125,7 @@ export const INITIAL_GOALS: Goal[] = [
     currentAmount: 1200000,
     targetAmount: 4000000,
     completed: false,
-    dateCreated: '2026-05-15',
-    createdAt: new Date('2026-05-15T12:00:00Z').toISOString()
+    dateCreated: '2026-05-15'
   }
 ];
 
@@ -139,8 +137,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     category: 'INCOME',
     description: 'Salario Quincenal',
     date: 'Hoy',
-    icon: 'payments',
-    createdAt: new Date().toISOString()
+    icon: 'payments'
   },
   {
     id: 'tx-2',
@@ -149,8 +146,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     category: '50_NEEDS',
     description: 'Arriendo',
     date: 'Hoy',
-    icon: 'home',
-    createdAt: new Date(Date.now() - 5000).toISOString() // slightly older than tx-1
+    icon: 'home'
   },
   {
     id: 'tx-3',
@@ -159,8 +155,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     category: '50_NEEDS',
     description: 'Mercado',
     date: 'Hace 1 día',
-    icon: 'shopping_cart',
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    icon: 'shopping_cart'
   },
   {
     id: 'tx-4',
@@ -169,8 +164,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     category: '30_WANTS',
     description: 'Cena en restaurante',
     date: 'Hace 2 días',
-    icon: 'restaurant',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+    icon: 'restaurant'
   },
   {
     id: 'tx-5',
@@ -179,7 +173,6 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     category: '20_SAVINGS',
     description: 'Abono a Deuda',
     date: 'Hace 3 días',
-    icon: 'account_balance',
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+    icon: 'account_balance'
   }
 ];

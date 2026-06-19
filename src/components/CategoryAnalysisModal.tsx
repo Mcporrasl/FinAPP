@@ -55,10 +55,6 @@ export function CategoryAnalysisModal({
   };
 
   const getRecommendation = () => {
-    if (totalIncome === 0) {
-      return `Por favor registra tus ingresos fijos o del mes en la pestaña "+" para poder calcular tu presupuesto ideal en ${categoryName.toLowerCase()} y brindarte recomendaciones personalizadas.`;
-    }
-
     const diff = actualPct - idealPct;
     
     if (category === '20_SAVINGS') {

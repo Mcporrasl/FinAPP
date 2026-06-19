@@ -31,13 +31,15 @@ export function OnboardingWizard({ userName, onComplete }: OnboardingWizardProps
       icon: 'payments',
       title: 'Tus Ingresos Fijos',
       content: 'Agrega tu salario u otros ingresos recurrentes. Se registrarán automáticamente cada mes.',
-      custom: true
+      custom: true,
+      component: <FixedTransactionsEditor type="income" items={incomes} onChange={setIncomes} />
     },
     {
       icon: 'home',
       title: 'Tus Gastos Fijos',
       content: 'Añade arriendo, servicios, cuotas fijas (se registran mes a mes).',
-      custom: true
+      custom: true,
+      component: <FixedTransactionsEditor type="expense" items={expenses} onChange={setExpenses} />
     }
   ];
 
@@ -66,8 +68,7 @@ export function OnboardingWizard({ userName, onComplete }: OnboardingWizardProps
 
         {currentStep.custom && (
           <div className="w-full relative z-10 mb-6 text-left">
-            {step === 3 && <FixedTransactionsEditor key="onboarding-income" type="income" items={incomes} onChange={setIncomes} />}
-            {step === 4 && <FixedTransactionsEditor key="onboarding-expense" type="expense" items={expenses} onChange={setExpenses} />}
+            {currentStep.component}
           </div>
         )}
 

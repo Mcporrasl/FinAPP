@@ -108,15 +108,13 @@ service cloud.firestore {
         && data.ownerId == request.auth.uid
         && data.name is string && data.name.size() <= 100
         && data.inviteCode is string && data.inviteCode.size() <= 20
-        && data.createdAt is string
-        && (!data.keys().hasAny(['membersList']) || (data.membersList is list && data.membersList.size() <= 2));
+        && data.createdAt is string;
     }
     function isValidFamilyUpdate(data) {
       return data.ownerId == existing().ownerId
         && data.createdAt == existing().createdAt
         && (!data.keys().hasAny(['name']) || (data.name is string && data.name.size() <= 100))
-        && (!data.keys().hasAny(['inviteCode']) || (data.inviteCode is string && data.inviteCode.size() <= 20))
-        && (!data.keys().hasAny(['membersList']) || (data.membersList is list && data.membersList.size() <= 2));
+        && (!data.keys().hasAny(['inviteCode']) || (data.inviteCode is string && data.inviteCode.size() <= 20));
     }
 
     // --- Family Member Validation ---
@@ -191,13 +189,7 @@ service cloud.firestore {
 
     match /coupons/{couponId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && (
-        (couponId == 'EMPMANUELITA' && incoming().maxUses == 30 && incoming().currentUses == 1 && incoming().tier == 'pro_monthly') ||
-        (couponId == 'PREMMC04' && incoming().maxUses == 50 && incoming().currentUses == 1 && incoming().tier == 'pro_lifetime') ||
-        ((couponId == 'DEMO' || couponId == 'DEMO2') && incoming().maxUses == 1 && incoming().currentUses == 1 && incoming().tier == 'pro_monthly' && incoming().trialDays == 30)
-      );
-      allow update: if isSignedIn() && incoming().currentUses == existing().currentUses + 1 && incoming().diff(existing()).affectedKeys().hasOnly(['currentUses']);
-      allow delete: if false;
+      allow write: if isSignedIn(); 
     }
 
     // --- Users Collection ---
@@ -227,32 +219,17 @@ service cloud.firestore {
 
     // --- Families Collection ---
     match /families/{familyId} {
-      allow get: if isSignedIn();
+      allow read: if isSignedIn() && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId));
       allow list: if isSignedIn() && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId));
-      allow create: if isSignedIn() && isValidId(familyId) && isValidFamily(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['ownerId', 'name', 'inviteCode', 'createdAt', 'membersList']);
-      allow update: if (isSignedIn() && isValidId(familyId) && (
-        // Case 1: Owner or member updating fields
-        ((existing().ownerId == request.auth.uid || isMemberOfFamily(familyId)) 
+      allow create: if isSignedIn() && isValidId(familyId) && isValidFamily(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['ownerId', 'name', 'inviteCode', 'createdAt']);
+      allow update: if (isSignedIn() && isValidId(familyId) && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId)) 
           && isValidFamilyUpdate(incoming()) 
-          && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'inviteCode', 'membersList']))
-        ||
-        // Case 2: Non-member joining the family
-        (!isMemberOfFamily(familyId) 
-          && isValidFamilyUpdate(incoming()) 
-          && incoming().diff(existing()).affectedKeys().hasOnly(['membersList'])
-          && incoming().membersList.size() <= 2
-          && incoming().membersList.hasAll(existing().membersList)
-          && incoming().membersList.removeAll(existing().membersList).hasOnly([request.auth.uid]))
-      ));
+          && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'inviteCode']));
       allow delete: if isSignedIn() && (existing() == null || existing().ownerId == request.auth.uid);
 
       match /members/{memberId} {
-         allow read, list: if isSignedIn() && (get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid || exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)));
-         allow create: if isSignedIn() && isValidId(memberId) 
-            && (memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid) 
-            && get(/databases/$(database)/documents/families/$(familyId)).data.membersList.hasAll([memberId])
-            && isValidFamilyMember(incoming()) 
-            && incoming().diff({}).affectedKeys().hasOnly(['id', 'name', 'role', 'avatarUrl', 'createdAt']);
+         allow read, list: if isSignedIn();
+         allow create: if isSignedIn() && isValidId(memberId) && (memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid) && isValidFamilyMember(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['id', 'name', 'role', 'avatarUrl', 'createdAt']);
          allow update: if (isSignedIn() && isValidId(memberId) && (memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid)
             && isValidFamilyMemberUpdate(incoming())
             && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'avatarUrl']));

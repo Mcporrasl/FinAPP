@@ -15,7 +15,7 @@ import { AuthView } from './components/AuthView';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, onSnapshot, query, deleteDoc, updateDoc, getDocs, where, deleteField } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, onSnapshot, query, deleteDoc, updateDoc, getDocs, where } from 'firebase/firestore';
 
 import { 
   TabType, 
@@ -671,11 +671,6 @@ export default function App() {
            }).catch(console.error);
         }
         
-        // Sync membersList array on parent family document
-        const fRef = doc(db, 'families', familyData.id);
-        const membersList = updatedMembers.map(m => m.id);
-        await updateDoc(fRef, { membersList }).catch(console.error);
-
       } catch (error) {
         console.error("Error updating members in Firestore:", error);
       }
@@ -776,36 +771,27 @@ export default function App() {
     if (!currentUser) return;
     try {
       if (isFamilyMode && familyData) {
-        // Disassociate all transactions linked to this goal instead of deleting them
+        // Delete all transactions linked to this goal
         const ftxRef = collection(db, 'families', familyData.id, 'transactions');
         const q = query(ftxRef, where('linkedGoalId', '==', goalId));
         const qSnap = await getDocs(q);
-        await Promise.all(qSnap.docs.map(docSnap => 
-          updateDoc(doc(db, 'families', familyData.id, 'transactions', docSnap.id), {
-            linkedGoalId: deleteField()
-          })
-        ));
+        await Promise.all(qSnap.docs.map(docSnap => deleteDoc(doc(db, 'families', familyData.id, 'transactions', docSnap.id))));
         
         // Delete the goal itself
         const fgRef = doc(db, 'families', familyData.id, 'goals', goalId);
         await deleteDoc(fgRef);
       } else {
-        // Disassociate all transactions linked to this goal instead of deleting them
+        // Delete all transactions linked to this goal
         const txRef = collection(db, 'users', currentUser.uid, 'transactions');
         const q = query(txRef, where('linkedGoalId', '==', goalId));
         const qSnap = await getDocs(q);
-        await Promise.all(qSnap.docs.map(docSnap => 
-          updateDoc(doc(db, 'users', currentUser.uid, 'transactions', docSnap.id), {
-            linkedGoalId: deleteField()
-          })
-        ));
+        await Promise.all(qSnap.docs.map(docSnap => deleteDoc(doc(db, 'users', currentUser.uid, 'transactions', docSnap.id))));
         
         // Delete the goal itself
         const gRef = doc(db, 'users', currentUser.uid, 'goals', goalId);
         await deleteDoc(gRef);
       }
       
-      setRewardMessage('🗑/ Meta eliminada'); // Keep feedback
       setRewardMessage('🗑️ Meta eliminada');
       setShowRewardNotification(true);
       setTimeout(() => setShowRewardNotification(false), 2000);
@@ -824,8 +810,7 @@ export default function App() {
         ownerId: currentUser.uid,
         name: data.name,
         inviteCode: data.inviteCode,
-        createdAt: new Date().toISOString(),
-        membersList: [currentUser.uid] // track members
+        createdAt: new Date().toISOString()
       };
       await setDoc(fRef, familyPayload);
       
@@ -861,27 +846,23 @@ export default function App() {
     if (!currentUser) return;
     try {
       let familyId = code.trim().toUpperCase();
-      const fRef = doc(db, 'families', familyId);
-      const fDoc = await getDoc(fRef);
       
-      if (!fDoc.exists()) {
+      // En lugar de leer el documento de la familia base (que está protegido para no-miembros),
+      // leemos la colección de members, que es "read: if isSignedIn()"
+      const memSnap = await getDocs(collection(db, 'families', familyId, 'members'));
+      
+      if (memSnap.empty) {
         alert("El código ingresado es incorrecto o la familia no existe.");
         return;
       }
       
-      const familyDataFromDb = fDoc.data();
-      const currentMembersList = familyDataFromDb.membersList || [familyDataFromDb.ownerId];
-      
-      if (currentMembersList.length >= 2) {
+      // Enforce the 2 members max
+      if (memSnap.size >= 2) {
         alert("Esta familia ya ha alcanzado su límite de integrantes según el plan de suscripción.");
         return;
       }
 
-      // Add user to membersList in family doc
-      const updatedMembersList = [...currentMembersList, currentUser.uid];
-      await updateDoc(fRef, { membersList: updatedMembersList });
-
-      // Add user to members subcollection
+      // Add user to members subcollection optimistically
       const memberRef = doc(db, 'families', familyId, 'members', currentUser.uid);
       await setDoc(memberRef, {
         id: currentUser.uid,
@@ -894,12 +875,18 @@ export default function App() {
       const finalMemSnap = await getDocs(collection(db, 'families', familyId, 'members'));
       const members = finalMemSnap.docs.map(m => ({ id: m.id, ...m.data() }));
 
-      setFamilyData({
-        id: familyId,
-        name: fDoc.data().name,
-        inviteCode: fDoc.data().inviteCode,
-        members: members as any
-      });
+      // Ahora SOMOS miembros. Ya podemos consultar el fDoc base para obtener nombre e inviteCode.
+      const fRef = doc(db, 'families', familyId);
+      const fDoc = await getDoc(fRef);
+      
+      if (fDoc.exists()) {
+        setFamilyData({
+          id: familyId,
+          name: fDoc.data().name,
+          inviteCode: fDoc.data().inviteCode,
+          members: members as any
+        });
+      }
       
       const uRef = doc(db, 'users', currentUser.uid);
       await updateDoc(uRef, { familyId: familyId, isFamilyMode: true }).catch(console.error);
@@ -929,19 +916,8 @@ export default function App() {
         try {
           const fRef = doc(db, 'families', familyData.id);
           await deleteDoc(fRef);
-        } catch(e: any) { throw new Error('Error de la familia: ' + e.message); }
+        } catch(e: any) { throw new Error('Error eliminando familia: ' + e.message); }
       } else {
-        // Remove self from membersList in family doc
-        try {
-          const fRef = doc(db, 'families', familyData.id);
-          const fDoc = await getDoc(fRef);
-          if (fDoc.exists()) {
-            const currentMembersList = fDoc.data().membersList || [];
-            const updatedMembersList = currentMembersList.filter((uid: string) => uid !== currentUser.uid);
-            await updateDoc(fRef, { membersList: updatedMembersList });
-          }
-        } catch(e: any) { throw new Error('Error actualizando miembros de familia: ' + e.message); }
-
         // Just remove self from family members subcollection
         try {
           const memberRef = doc(db, 'families', familyData.id, 'members', currentUser.uid);
