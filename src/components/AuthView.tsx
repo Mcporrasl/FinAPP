@@ -26,41 +26,33 @@ export function AuthView({ onLogin }: AuthViewProps) {
     }
   }, []);
 
-  const handleGoogleLogin = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const provider = new GoogleAuthProvider();
-      
-      // If we are on iOS PWA, use redirect directly to avoid popup blocks entirely
-      if (isStandalone) {
-        await signInWithRedirect(auth, provider);
-        return; // Redirecting, leave loading true
-      }
-
-      const result = await signInWithPopup(auth, provider);
-      onLogin(
-        result.user.displayName || 'Usuario', 
-        result.user.email || '', 
-        result.user.uid,
-        result.user.emailVerified
-      );
-    } catch (err: any) {
-      console.error("Login error:", err);
-      // Fallback for browsers blocking popup
-      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/unauthorized-domain') {
-        try {
-          const provider = new GoogleAuthProvider();
-          await signInWithRedirect(auth, provider);
-        } catch (redirectErr: any) {
-           setError('No se pudo usar Google Login (Redirección).');
-           setLoading(false);
-        }
-      } else {
-        setError(err.message || 'Error al iniciar sesión con Google');
+  const handleGoogleLogin = () => {
+    // Importante: No llamar a setLoading(true) aquí porque rompe el contexto síncrono del evento click
+    // y causa que Safari en iOS PWA bloquee el popup.
+    setError(null);
+    const provider = new GoogleAuthProvider();
+    
+    // En iOS PWA, esto abrirá un SFSafariViewController superpuesto que comparte la sesión
+    // y no rompe la caja de arena de la PWA (a diferencia de signInWithRedirect).
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        setLoading(true);
+        onLogin(
+          result.user.displayName || 'Usuario', 
+          result.user.email || '', 
+          result.user.uid,
+          result.user.emailVerified
+        );
+      })
+      .catch((err) => {
+        console.error("Login error:", err);
         setLoading(false);
-      }
-    }
+        if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+           setError('El navegador bloqueó la ventana. Por favor, inténtalo de nuevo y permite la ventana emergente.');
+        } else {
+           setError(err.message || 'Error al iniciar sesión con Google');
+        }
+      });
   };
 
   return (
