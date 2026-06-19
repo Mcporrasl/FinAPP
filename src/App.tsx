@@ -725,18 +725,46 @@ export default function App() {
     }
   };
 
+  const handleDeleteGoal = async (goalId: string) => {
+    if (!currentUser) return;
+    try {
+      if (isFamilyMode && familyData) {
+        // Delete all transactions linked to this goal
+        const ftxRef = collection(db, 'families', familyData.id, 'transactions');
+        const q = query(ftxRef, where('linkedGoalId', '==', goalId));
+        const qSnap = await getDocs(q);
+        qSnap.forEach(async (docSnap) => {
+          await deleteDoc(doc(db, 'families', familyData.id, 'transactions', docSnap.id));
+        });
+        // Delete the goal itself
+        const fgRef = doc(db, 'families', familyData.id, 'goals', goalId);
+        await deleteDoc(fgRef);
+      } else {
+        // Delete all transactions linked to this goal
+        const txRef = collection(db, 'users', currentUser.uid, 'transactions');
+        const q = query(txRef, where('linkedGoalId', '==', goalId));
+        const qSnap = await getDocs(q);
+        qSnap.forEach(async (docSnap) => {
+          await deleteDoc(doc(db, 'users', currentUser.uid, 'transactions', docSnap.id));
+        });
+        // Delete the goal itself
+        const gRef = doc(db, 'users', currentUser.uid, 'goals', goalId);
+        await deleteDoc(gRef);
+      }
+      
+      setRewardMessage('🗑️ Meta eliminada');
+      setShowRewardNotification(true);
+      setTimeout(() => setShowRewardNotification(false), 2000);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleCreateFamily = async (data: FamilyData) => {
     if (!currentUser) return;
     try {
       const familyId = data.inviteCode; // Use invite code as the actual document ID!
       const fRef = doc(db, 'families', familyId);
-      
-      // Check if code is taken (rare but possible)
-      const existing = await getDoc(fRef);
-      if (existing.exists()) {
-         alert("Hubo un error de colisión de código. Por favor intenta crear la familia otra vez.");
-         return;
-      }
 
       const familyPayload = {
         ownerId: currentUser.uid,
@@ -832,6 +860,28 @@ export default function App() {
     }
   };
 
+  const handleLeaveFamily = async () => {
+    if (!currentUser || !familyData) return;
+    try {
+      // Remove self from family members subcollection
+      const memberRef = doc(db, 'families', familyData.id, 'members', currentUser.uid);
+      await deleteDoc(memberRef);
+      // Update user doc
+      const uRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(uRef, { familyId: null, isFamilyMode: false });
+      
+      setFamilyData(null);
+      setIsFamilyMode(false);
+      setIsSettingsOpen(false);
+      setRewardMessage('Has abandonado la familia');
+      setShowRewardNotification(true);
+      setTimeout(() => setShowRewardNotification(false), 2000);
+    } catch (e) {
+      console.error(e);
+      alert('Error abandonando el grupo familiar.');
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -881,9 +931,11 @@ export default function App() {
           currentName={userName}
           currentAvatar={activeAvatar}
           currentCurrency={currency}
+          isFamilyMode={isFamilyMode}
           onSave={handleSaveSettings}
           onClose={() => setIsSettingsOpen(false)}
           onLogout={handleLogout}
+          onLeaveFamily={handleLeaveFamily}
         />
       )}
 
@@ -968,6 +1020,7 @@ export default function App() {
                      transactions={currentTransactions}
                      onAddAmountToGoal={handleAddAmountToGoal}
                      onAddNewGoal={handleAddNewGoal}
+                     onDeleteGoal={handleDeleteGoal}
                      isFamilyMode={isFamilyMode}
                      familyData={familyData}
                   />

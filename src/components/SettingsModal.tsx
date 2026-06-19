@@ -5,18 +5,22 @@ interface SettingsModalProps {
   currentName: string;
   currentAvatar: AvatarOption;
   currentCurrency: string;
+  isFamilyMode?: boolean;
   onSave: (name: string, avatar: AvatarOption, currency: string) => void;
   onClose: () => void;
   onLogout: () => void;
+  onLeaveFamily?: () => void;
 }
 
 export function SettingsModal({
   currentName,
   currentAvatar,
   currentCurrency,
+  isFamilyMode,
   onSave,
   onClose,
   onLogout,
+  onLeaveFamily,
 }: SettingsModalProps) {
   const [name, setName] = React.useState(currentName);
   const [selectedAvatar, setSelectedAvatar] = React.useState<AvatarOption>(currentAvatar);
@@ -118,6 +122,22 @@ export function SettingsModal({
               Guardar Cambios
             </button>
           </div>
+          {isFamilyMode && onLeaveFamily && (
+            <div className="w-full mt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if(window.confirm('¿Estás seguro de abandonar la familia? Dejarás de ver los movimientos familiares y volverás a tu billetera personal.')) {
+                    onLeaveFamily();
+                  }
+                }}
+                className="w-full bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 py-3 rounded-lg font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">group_remove</span>
+                Abandonar Familia
+              </button>
+            </div>
+          )}
           <div className="w-full mt-1">
             <a
               href="https://wa.me/573026289147?text=Hola%2C%20necesito%20soporte%20con%20mi%20cuenta%20de%20FinAPP"

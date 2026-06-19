@@ -39,50 +39,158 @@ export function PathTab({ transactions, onDeleteTransaction, currency = 'COP' }:
     const doc = new jsPDF();
     
     // Header text
-    doc.setFontSize(18);
-    doc.setTextColor(30, 41, 59); // slate-800
-    doc.text('Historial de Movimientos - FinAPP', 14, 22);
+    doc.setFontSize(22);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Extracto Bancario - FinAPP', 14, 22);
     
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setTextColor(100);
     const dateFormatted = new Date().toLocaleString('es-CO', { 
       year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
-    doc.text(`Generado el: ${dateFormatted}`, 14, 30);
-    
-    const tableColumn = ["Fecha", "Tipo", "Categoría", "Descripción", "Valor"];
-    const tableRows: any[] = [];
-    
-    const sortedTransactions = [...transactions].sort((a,b) => {
-      const aDate = new Date(a.createdAt || a.date).getTime();
-      const bDate = new Date(b.createdAt || b.date).getTime();
-      return bDate - aDate;
-    });
+    doc.text(`Generado el: ${dateFormatted} | Moneda: ${currency}`, 14, 30);
 
-    sortedTransactions.forEach(tx => {
-      const txDate = tx.createdAt ? new Date(tx.createdAt).toLocaleDateString('es-CO') : tx.date;
-      const txType = tx.type === 'income' ? 'Ingreso' : 'Gasto';
-      const txCat = calculateCatLabel(tx.category);
-      const valStr = new Intl.NumberFormat('es-CO', { style: 'decimal', maximumFractionDigits: 0 }).format(tx.amount);
-      const txAmount = `${tx.type === 'income' ? '+' : '-'}${currency === 'COP' ? '$' : currency} ${valStr}`;
+    // Group transactions by YYYY-MM
+    type MonthlyData = {
+      monthKey: string;
+      label: string;
+      income: number;
+      expenses: number;
+      needs: number;
+      wants: number;
+      savings: number;
+      txs: Transaction[];
+    };
+    
+    const monthlySummary: Record<string, MonthlyData> = {};
+
+    [...transactions].forEach(tx => {
+      const d = new Date(tx.createdAt || tx.date);
+      if (isNaN(d.getTime())) return;
       
-      tableRows.push([txDate, txType, txCat, tx.description, txAmount]);
-    });
-
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 40,
-      theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: {
-        4: { halign: 'right', fontStyle: 'bold' } // Value column
+      const yStr = d.getFullYear();
+      const mStr = String(d.getMonth() + 1).padStart(2, '0');
+      const monthKey = `${yStr}-${mStr}`;
+      
+      if (!monthlySummary[monthKey]) {
+        const titleFormatter = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' });
+        const monthLabel = titleFormatter.format(d);
+        monthlySummary[monthKey] = {
+          monthKey,
+          label: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+          income: 0, expenses: 0,
+          needs: 0, wants: 0, savings: 0,
+          txs: []
+        };
+      }
+      
+      const m = monthlySummary[monthKey];
+      m.txs.push(tx);
+      
+      if (tx.type === 'income') {
+        m.income += tx.amount;
+      } else {
+        m.expenses += tx.amount;
+        if (tx.category === '50_NEEDS') m.needs += tx.amount;
+        if (tx.category === '30_WANTS') m.wants += tx.amount;
+        if (tx.category === '20_SAVINGS') m.savings += tx.amount;
       }
     });
+
+    const formatCurr = (val: number) => {
+      return new Intl.NumberFormat('es-CO', { style: 'decimal', maximumFractionDigits: 0 }).format(Math.abs(val));
+    };
+
+    const sortedMonths = Object.values(monthlySummary).sort((a,b) => a.monthKey.localeCompare(b.monthKey));
     
-    doc.save('FinAPP_Historial.pdf');
+    let currentY = 40;
+
+    sortedMonths.forEach((m, idx) => {
+      if (currentY > 250) {
+        doc.addPage();
+        currentY = 20;
+      }
+
+      // Month Title
+      doc.setFontSize(14);
+      doc.setTextColor(30, 41, 59);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Periodo: ${m.label}`, 14, currentY);
+      currentY += 8;
+      
+      // Comparison logic
+      let comparisonText = '';
+      if (idx > 0) {
+        const prev = sortedMonths[idx - 1];
+        const prevExp = prev.expenses || 1; // avoid division by zero
+        const expGrowth = ((m.expenses - prev.expenses) / prevExp) * 100;
+        
+        const prevSav = prev.savings || 1;
+        const savGrowth = ((m.savings - prev.savings) / prevSav) * 100;
+        
+        const expLabel = expGrowth > 0 ? `Subieron +${expGrowth.toFixed(1)}% ⚠️` : `Bajaron ${expGrowth.toFixed(1)}% ✅`;
+        const savLabel = savGrowth > 0 ? `Subió +${savGrowth.toFixed(1)}% ✅` : `Bajó ${savGrowth.toFixed(1)}% ⚠️`;
+        
+        comparisonText = `vs Mes Anterior -> Gastos: ${expLabel} | Ahorros: ${savLabel}`;
+      } else {
+         comparisonText = 'Sin datos previos para comparar.';
+      }
+
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.setFont("helvetica", "normal");
+      doc.text(comparisonText, 14, currentY);
+      currentY += 8;
+
+      // Summary Table for Month
+      autoTable(doc, {
+        startY: currentY,
+        head: [["Total Ingresos", "Total Gastos", "Básicos (50%)", "Deseos (30%)", "Ahorros (20%)"]],
+        body: [[
+           `$ ${formatCurr(m.income)}`,
+           `$ ${formatCurr(m.expenses)}`,
+           `$ ${formatCurr(m.needs)}`,
+           `$ ${formatCurr(m.wants)}`,
+           `$ ${formatCurr(m.savings)}`
+        ]],
+        theme: 'grid',
+        headStyles: { fillColor: [44, 62, 80] },
+        styles: { fontSize: 9, halign: 'center' }
+      });
+
+      currentY = (doc as any).lastAutoTable.finalY + 10;
+
+      // Transactions Table for Month
+      m.txs.sort((a,b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+      
+      const tableRows = m.txs.map(tx => {
+        const txDate = tx.createdAt ? new Date(tx.createdAt).toLocaleDateString('es-CO') : tx.date;
+        const txType = tx.type === 'income' ? 'Ingreso' : 'Gasto';
+        const txCat = calculateCatLabel(tx.category);
+        const txAmount = `${tx.type === 'income' ? '+' : '-'}$ ${formatCurr(tx.amount)}`;
+        return [txDate, txType, txCat, tx.description, txAmount];
+      });
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [["Fecha", "Tipo", "Categoría", "Descripción", "Valor"]],
+        body: tableRows,
+        theme: 'striped',
+        headStyles: { fillColor: [71, 85, 105], fontSize: 8 },
+        styles: { fontSize: 8 },
+        columnStyles: {
+          4: { halign: 'right', fontStyle: 'bold' }
+        }
+      });
+
+      currentY = (doc as any).lastAutoTable.finalY + 20;
+    });
+
+    if (sortedMonths.length === 0) {
+       doc.text("No hay movimientos registrados para generar el extracto.", 14, 50);
+    }
+    
+    doc.save('FinAPP_Extracto_Bancario.pdf');
   };
 
   return (

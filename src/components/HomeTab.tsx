@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Transaction, Goal, FamilyData, CategoryType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryAnalysisModal } from './CategoryAnalysisModal';
+import { MonthlyReport } from './MonthlyReport';
 
 function CopyInviteButton({ inviteCode }: { inviteCode: string }) {
   const [copied, setCopied] = useState(false);
@@ -209,6 +210,11 @@ export function HomeTab({
              <p className="text-base font-bold text-pink-400 drop-shadow-md">- $ {formatCurrency(totalExpense)}</p>
            </div>
         </div>
+      </motion.div>
+
+      {/* Monthly Report Interactive Graphs */}
+      <motion.div variants={itemVariants} className="w-full">
+        <MonthlyReport transactions={transactions} />
       </motion.div>
 
       {/* 50/30/20 Breakdown Section */}

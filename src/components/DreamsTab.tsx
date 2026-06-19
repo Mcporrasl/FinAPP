@@ -8,6 +8,7 @@ interface DreamsTabProps {
   transactions?: Transaction[];
   onAddAmountToGoal: (goalId: string, amount: number, createdBy?: string, createdByAvatar?: string) => void;
   onAddNewGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'completed' | 'dateCreated'>) => void;
+  onDeleteGoal: (goalId: string) => void;
   isFamilyMode?: boolean;
   familyData?: FamilyData | null;
 }
@@ -17,6 +18,7 @@ export function DreamsTab({
   transactions,
   onAddAmountToGoal,
   onAddNewGoal,
+  onDeleteGoal,
   isFamilyMode,
   familyData,
 }: DreamsTabProps) {
@@ -223,6 +225,19 @@ export function DreamsTab({
                   >
                      <span className="material-symbols-outlined text-base">verified</span> Completado
                   </motion.span>
+                )}
+                {!isFunded && (
+                   <button
+                     onClick={() => {
+                       if(window.confirm('¿Eliminar esta meta? Se recuperará el dinero ingresado a tu balance.')) {
+                         onDeleteGoal(goal.id);
+                       }
+                     }}
+                     className="bg-rose-50 text-rose-500 p-2 rounded-xl border border-rose-100 hover:bg-rose-100 shadow-sm"
+                     title="Eliminar meta"
+                   >
+                     <span className="material-symbols-outlined text-base">delete</span>
+                   </button>
                 )}
               </div>
 
