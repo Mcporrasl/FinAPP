@@ -27,6 +27,7 @@ export function DreamsTab({
   const [newTarget, setNewTarget] = useState('');
   const [newType, setNewType] = useState<GoalType>('DEBT');
   const [newIcon, setNewIcon] = useState('credit_card_off');
+  const [deleteConfirmGoalId, setDeleteConfirmGoalId] = useState<string | null>(null);
 
   const [selectedMemberId, setSelectedMemberId] = useState<string>(() => {
     if (familyData && familyData.members.length > 0) {
@@ -228,11 +229,7 @@ export function DreamsTab({
                 )}
                 {!isFunded && (
                    <button
-                     onClick={() => {
-                       if(window.confirm('¿Eliminar esta meta? Se recuperará el dinero ingresado a tu balance.')) {
-                         onDeleteGoal(goal.id);
-                       }
-                     }}
+                     onClick={() => setDeleteConfirmGoalId(goal.id)}
                      className="bg-rose-50 text-rose-500 p-2 rounded-xl border border-rose-100 hover:bg-rose-100 shadow-sm"
                      title="Eliminar meta"
                    >
@@ -452,7 +449,14 @@ export function DreamsTab({
 
               <form onSubmit={handleFundSubmit} className="flex flex-col gap-5">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Monto del Abono (COP)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex justify-between">
+                    <span>Monto del Abono (COP)</span>
+                    <span className="text-indigo-500 font-bold">Disponible: ${(() => {
+                      const totalInc = transactions?.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0) || 0;
+                      const savDebt = transactions?.filter(t => t.category === '20_SAVINGS').reduce((acc, t) => acc + t.amount, 0) || 0;
+                      return new Intl.NumberFormat('es-CO').format(Math.max(0, (totalInc * 0.2) - savDebt));
+                    })()}</span>
+                  </label>
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-slate-400 font-bold">$</span>
                     <input 
@@ -461,7 +465,9 @@ export function DreamsTab({
                       inputMode="numeric"
                       onChange={(e) => {
                          const cleaned = e.target.value.replace(/[^0-9]/g, '');
-                         setFundAmount(cleaned ? parseInt(cleaned, 10).toLocaleString('es-CO') : '');
+                         const val = cleaned ? parseInt(cleaned, 10) : 0;
+                         
+                         setFundAmount(cleaned ? val.toLocaleString('es-CO') : '');
                       }}
                       placeholder="50.000" 
                       className="bg-slate-50 border-2 border-slate-200 rounded-xl w-full pl-8 pr-4 py-3.5 text-lg text-slate-800 outline-none focus:border-emerald-500 focus:bg-white font-black placeholder-slate-400 transition-all text-center"
@@ -469,6 +475,9 @@ export function DreamsTab({
                       autoFocus
                     />
                   </div>
+                  <p className="text-[10px] text-slate-400 text-center -mt-1">
+                    El monto se restará del presupuesto de Ahorros (20%).
+                  </p>
                 </div>
 
                 {isFamilyMode && familyData && (
@@ -503,6 +512,48 @@ export function DreamsTab({
                   Registrar Abono
                 </motion.button>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteConfirmGoalId && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative flex flex-col items-center justify-center p-8 text-center"
+            >
+               <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 mb-5 border-4 border-rose-100">
+                  <span className="material-symbols-outlined text-4xl">delete</span>
+               </div>
+               <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">¿Eliminar Meta?</h3>
+               <p className="text-sm font-semibold text-slate-500 mb-8 leading-relaxed">
+                  ¿Estás seguro de que quieres eliminar esta meta? Se recuperará el dinero ingresado a tu balance principal.
+               </p>
+               <div className="flex gap-4 w-full">
+                 <motion.button 
+                   whileHover={{ scale: 1.02 }}
+                   whileTap={{ scale: 0.98 }}
+                   onClick={() => setDeleteConfirmGoalId(null)}
+                   className="flex-1 px-4 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-2xl transition-colors border-2 border-slate-200"
+                 >
+                   Cancelar
+                 </motion.button>
+                 <motion.button 
+                   whileHover={{ scale: 1.02 }}
+                   whileTap={{ scale: 0.98 }}
+                   onClick={() => {
+                     onDeleteGoal(deleteConfirmGoalId);
+                     setDeleteConfirmGoalId(null);
+                   }}
+                   className="flex-1 px-4 py-4 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-black rounded-2xl shadow-lg shadow-rose-500/30 border border-rose-400"
+                 >
+                   Eliminar
+                 </motion.button>
+               </div>
             </motion.div>
           </div>
         )}

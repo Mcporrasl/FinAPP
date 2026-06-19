@@ -20,6 +20,15 @@ export interface Transaction {
   linkedGoalId?: string;
 }
 
+export interface FixedTransaction {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  category: CategoryType;
+  description: string;
+  icon: string;
+}
+
 export type GoalType = 'DEBT' | 'SAVINGS';
 
 export interface Goal {

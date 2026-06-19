@@ -21,6 +21,7 @@ import {
   TabType, 
   AvatarOption, 
   Transaction, 
+  FixedTransaction,
   Goal,
   AVATAR_OPTIONS,
   INITIAL_TRANSACTIONS,
@@ -106,6 +107,8 @@ export default function App() {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(() => {
     return localStorage.getItem('fin_onboarded') === 'true';
   });
+  
+  const [fixedTransactions, setFixedTransactions] = useState<FixedTransaction[]>([]);
 
   // --- Family State Variables ---
   const [isFamilyMode, setIsFamilyMode] = useState<boolean>(() => {
@@ -224,6 +227,29 @@ export default function App() {
               setHasCompletedOnboarding(false);
             }
             
+            // Check for monthly recurring transactions
+            if (data.fixedTransactions) {
+              setFixedTransactions(data.fixedTransactions);
+            }
+            if (data.fixedTransactions && data.fixedTransactions.length > 0) {
+              const dbDate = new Date();
+              const currentMonthStr = `${dbDate.getFullYear()}-${(dbDate.getMonth() + 1).toString().padStart(2, '0')}`;
+              if (data.lastRecurrenceMonth !== currentMonthStr) {
+                data.fixedTransactions.forEach((tx: any) => {
+                  const ptxRef = doc(collection(db, 'users', user.uid, 'transactions'));
+                  setDoc(ptxRef, {
+                    ...tx,
+                    id: ptxRef.id,
+                    userId: user.uid,
+                    date: 'Hoy',
+                    createdAt: dbDate.toISOString(),
+                    description: `${tx.description} (Auto)`
+                  }).catch(console.error);
+                });
+                await updateDoc(userRef, { lastRecurrenceMonth: currentMonthStr }).catch(console.error);
+              }
+            }
+
             if (data.familyId) {
               // Fetch Family data using stored ID
               const fRef = doc(db, 'families', data.familyId);
@@ -318,7 +344,7 @@ export default function App() {
       // Sort by date or id falling back to keep order somewhat stable
       fetchedTx.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
       setTransactions(fetchedTx);
-    });
+    }, (error) => console.log('Silenced snapshot error:', error.message));
 
     // Sub to Personal Goals
     const goalsRef = collection(db, 'users', currentUser.uid, 'goals');
@@ -329,7 +355,7 @@ export default function App() {
       });
       fetchedGoals.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
       setGoals(fetchedGoals);
-    });
+    }, (error) => console.log('Silenced snapshot error:', error.message));
     
     // Automatically check if user owns a family to recover it if they just logged in on a new device
     if (isFamilyMode && !familyData) {
@@ -378,7 +404,7 @@ export default function App() {
       });
       fetchedTx.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
       setFamilyTransactions(fetchedTx);
-    });
+    }, (error) => console.log('Silenced snapshot error:', error.message));
 
     // Sub to Family Goals
     const fGoalsRef = collection(db, 'families', familyId, 'goals');
@@ -389,7 +415,7 @@ export default function App() {
       });
       fetchedGoals.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
       setFamilyGoals(fetchedGoals);
-    });
+    }, (error) => console.log('Silenced snapshot error:', error.message));
 
     // Sub to Family Members to keep them updated
     const fMembersRef = collection(db, 'families', familyId, 'members');
@@ -397,7 +423,7 @@ export default function App() {
       const members: any[] = [];
       snapshot.forEach(m => members.push({ id: m.id, ...m.data() }));
       setFamilyData(prev => prev ? { ...prev, members } : null);
-    });
+    }, (error) => console.log('Silenced snapshot error:', error.message));
 
     return () => {
       unsubFTx();
@@ -600,13 +626,19 @@ export default function App() {
      }
   };
 
-  const handleSaveSettings = (name: string, avatar: AvatarOption, currencyVal: string) => {
+  const handleSaveSettings = async (name: string, avatar: AvatarOption, currencyVal: string, fixedItems: FixedTransaction[]) => {
     setUserName(name);
     setActiveAvatar(avatar);
     setCurrency(currencyVal);
+    setFixedTransactions(fixedItems);
     setIsSettingsOpen(false);
 
-    setRewardMessage(`⚙️ Perfil actualizado con éxito, ${name}.`);
+    if (currentUser) {
+      const uRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(uRef, { fixedTransactions: fixedItems }).catch(console.error);
+    }
+
+    setRewardMessage(`⚙️ Perfil y ajustes guardados con éxito.`);
     setShowRewardNotification(true);
     setTimeout(() => {
       setShowRewardNotification(false);
@@ -649,23 +681,33 @@ export default function App() {
     console.log("Joined with Firebase:", name);
   };
 
-  const handleCompleteOnboarding = (initialTxs: Omit<Transaction, 'id' | 'date' | 'createdAt' | 'userId' | 'familyId'>[]) => {
+  const handleCompleteOnboarding = async (fixedItems: any[]) => {
     localStorage.setItem('fin_onboarded', 'true');
     setHasCompletedOnboarding(true);
 
     if (currentUser) {
-      initialTxs.forEach((tx) => {
+      const dbDate = new Date();
+      const currentMonthStr = `${dbDate.getFullYear()}-${(dbDate.getMonth() + 1).toString().padStart(2, '0')}`;
+
+      // Insert the monthly copies as real transactions
+      fixedItems.forEach((tx) => {
         const ptxRef = doc(collection(db, 'users', currentUser.uid, 'transactions'));
         setDoc(ptxRef, {
           ...tx,
           id: ptxRef.id,
           userId: currentUser.uid,
           date: 'Hoy',
-          createdAt: new Date().toISOString()
+          createdAt: dbDate.toISOString(),
+          description: `${tx.description} (Auto)` // Mark it visually
         }).catch(console.error);
       });
+
       const uRef = doc(db, 'users', currentUser.uid);
-      updateDoc(uRef, { hasCompletedOnboarding: true }).catch(console.error);
+      await updateDoc(uRef, { 
+        hasCompletedOnboarding: true,
+        fixedTransactions: fixedItems,
+        lastRecurrenceMonth: currentMonthStr
+      }).catch(console.error);
     }
     
     // Clear out family mode completely upon resetting
@@ -866,22 +908,27 @@ export default function App() {
 
       if (isAdmin) {
         // Owner deleting the whole family
-        // Delete all members FIRST
-        const memSnap = await getDocs(collection(db, 'families', familyData.id, 'members'));
-        await Promise.all(memSnap.docs.map(d => deleteDoc(doc(db, 'families', familyData.id, 'members', d.id))));
+        try {
+          const memSnap = await getDocs(collection(db, 'families', familyData.id, 'members'));
+          await Promise.all(memSnap.docs.map(d => deleteDoc(doc(db, 'families', familyData.id, 'members', d.id))));
+        } catch(e: any) { throw new Error('Error eliminando miembros: ' + e.message); }
         
-        // Delete the family doc itself
-        const fRef = doc(db, 'families', familyData.id);
-        await deleteDoc(fRef);
+        try {
+          const fRef = doc(db, 'families', familyData.id);
+          await deleteDoc(fRef);
+        } catch(e: any) { throw new Error('Error eliminando familia: ' + e.message); }
       } else {
         // Just remove self from family members subcollection
-        const memberRef = doc(db, 'families', familyData.id, 'members', currentUser.uid);
-        await deleteDoc(memberRef);
+        try {
+          const memberRef = doc(db, 'families', familyData.id, 'members', currentUser.uid);
+          await deleteDoc(memberRef);
+        } catch(e: any) { throw new Error('Error removiendo miembro: ' + e.message); }
       }
       
-      // Update user doc
-      const uRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(uRef, { familyId: null, isFamilyMode: false });
+      try {
+        const uRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(uRef, { familyId: null, isFamilyMode: false });
+      } catch(e: any) { throw new Error('Error actualizando usuario: ' + e.message); }
       
       setFamilyData(null);
       setIsFamilyMode(false);
@@ -894,9 +941,9 @@ export default function App() {
       }
       setShowRewardNotification(true);
       setTimeout(() => setShowRewardNotification(false), 2000);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert('Error abandonando/eliminando el grupo familiar.');
+      alert('Error: ' + (e?.message || e));
     }
   };
 
@@ -950,6 +997,7 @@ export default function App() {
           currentAvatar={activeAvatar}
           currentCurrency={currency}
           isFamilyMode={isFamilyMode}
+          fixedTransactions={fixedTransactions}
           onSave={handleSaveSettings}
           onClose={() => setIsSettingsOpen(false)}
           onLogout={handleLogout}
