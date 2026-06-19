@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Transaction } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { PiggyLogo } from './PiggyLogo';
+import { currencyFormatter } from '../utils/format';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -13,10 +14,7 @@ export function TransactionList({ transactions, onDelete, currency = 'COP' }: Tr
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'decimal',
-      maximumFractionDigits: 0
-    }).format(val);
+    return currencyFormatter.format(val);
   };
 
   const calculateCatColor = (cat: string) => {

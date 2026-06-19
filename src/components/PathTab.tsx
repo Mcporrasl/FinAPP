@@ -5,6 +5,7 @@ import { PiggyLogo } from './PiggyLogo';
 import { TransactionList } from './TransactionList';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { currencyFormatter } from '../utils/format';
 
 interface PathTabProps {
   transactions: Transaction[];
@@ -63,7 +64,7 @@ export function PathTab({ transactions, onDeleteTransaction, currency = 'COP' }:
       const txDate = tx.createdAt ? new Date(tx.createdAt).toLocaleDateString('es-CO') : tx.date;
       const txType = tx.type === 'income' ? 'Ingreso' : 'Gasto';
       const txCat = calculateCatLabel(tx.category);
-      const valStr = new Intl.NumberFormat('es-CO', { style: 'decimal', maximumFractionDigits: 0 }).format(tx.amount);
+      const valStr = currencyFormatter.format(tx.amount);
       const txAmount = `${tx.type === 'income' ? '+' : '-'}${currency === 'COP' ? '$' : currency} ${valStr}`;
       
       tableRows.push([txDate, txType, txCat, tx.description, txAmount]);
