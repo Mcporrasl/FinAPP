@@ -133,6 +133,16 @@ export function AddTab({ onAddTransaction, isFamilyMode, familyData }: AddTabPro
     visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
+  const formatAmountForDisplay = (str: string) => {
+    if (str === '0' || !str) return '';
+    const [integerPart, decimalPart] = str.split('.');
+    const formattedInteger = parseInt(integerPart || '0', 10).toLocaleString('es-CO');
+    if (str.includes('.')) {
+      return `${formattedInteger},${decimalPart}`;
+    }
+    return formattedInteger;
+  };
+
   return (
     <motion.div 
       initial="hidden" 
@@ -318,10 +328,21 @@ export function AddTab({ onAddTransaction, isFamilyMode, familyData }: AddTabPro
             id="calculator-amount-input"
             type="text" 
             inputMode="decimal"
-            value={amountStr !== '0' && !amountStr.endsWith('.') ? parseFloat(amountStr).toLocaleString('es-CO', { maximumFractionDigits: 2 }) : amountStr !== '0' ? parseFloat(amountStr.replace('.', '')).toLocaleString('es-CO', { maximumFractionDigits: 2 }) + ',' : ''}
+            value={formatAmountForDisplay(amountStr)}
             onChange={(e) => {
-              const val = e.target.value.replace(/[^0-9,]/g, '').replace(',', '.');
-              setAmountStr(val || '0');
+              let raw = e.target.value;
+              raw = raw.replace(',', '.');
+              const parts = raw.split('.');
+              if (parts.length > 2) {
+                const integerPart = parts.slice(0, -1).join('');
+                const decimalPart = parts[parts.length - 1];
+                raw = integerPart + '.' + decimalPart;
+              }
+              raw = raw.replace(/[^0-9.]/g, '');
+              if (raw.startsWith('.')) {
+                raw = '0' + raw;
+              }
+              setAmountStr(raw || '0');
             }}
             placeholder="0"
             className="bg-transparent text-5xl font-black text-white tracking-tighter outline-none w-full max-w-[250px] text-center placeholder:text-slate-700 focus:scale-105 transition-transform"

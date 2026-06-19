@@ -3,6 +3,7 @@ import { FixedTransaction, CategoryType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface FixedTransactionsEditorProps {
+  key?: string;
   type: 'income' | 'expense';
   items: FixedTransaction[];
   onChange: (items: FixedTransaction[]) => void;

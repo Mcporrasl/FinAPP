@@ -128,8 +128,8 @@ export function PathTab({ transactions, onDeleteTransaction, currency = 'COP' }:
         const prevSav = prev.savings || 1;
         const savGrowth = ((m.savings - prev.savings) / prevSav) * 100;
         
-        const expLabel = expGrowth > 0 ? `Subieron +${expGrowth.toFixed(1)}% ⚠️` : `Bajaron ${expGrowth.toFixed(1)}% ✅`;
-        const savLabel = savGrowth > 0 ? `Subió +${savGrowth.toFixed(1)}% ✅` : `Bajó ${savGrowth.toFixed(1)}% ⚠️`;
+        const expLabel = expGrowth > 0 ? `Subieron +${expGrowth.toFixed(1)}% ⚠️` : `Bajaron ${Math.abs(expGrowth).toFixed(1)}% ✅`;
+        const savLabel = savGrowth > 0 ? `Subió +${savGrowth.toFixed(1)}% ✅` : `Bajó ${Math.abs(savGrowth).toFixed(1)}% ⚠️`;
         
         comparisonText = `vs Mes Anterior -> Gastos: ${expLabel} | Ahorros: ${savLabel}`;
       } else {
