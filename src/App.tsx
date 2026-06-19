@@ -733,9 +733,8 @@ export default function App() {
         const ftxRef = collection(db, 'families', familyData.id, 'transactions');
         const q = query(ftxRef, where('linkedGoalId', '==', goalId));
         const qSnap = await getDocs(q);
-        qSnap.forEach(async (docSnap) => {
-          await deleteDoc(doc(db, 'families', familyData.id, 'transactions', docSnap.id));
-        });
+        await Promise.all(qSnap.docs.map(docSnap => deleteDoc(doc(db, 'families', familyData.id, 'transactions', docSnap.id))));
+        
         // Delete the goal itself
         const fgRef = doc(db, 'families', familyData.id, 'goals', goalId);
         await deleteDoc(fgRef);
@@ -744,9 +743,8 @@ export default function App() {
         const txRef = collection(db, 'users', currentUser.uid, 'transactions');
         const q = query(txRef, where('linkedGoalId', '==', goalId));
         const qSnap = await getDocs(q);
-        qSnap.forEach(async (docSnap) => {
-          await deleteDoc(doc(db, 'users', currentUser.uid, 'transactions', docSnap.id));
-        });
+        await Promise.all(qSnap.docs.map(docSnap => deleteDoc(doc(db, 'users', currentUser.uid, 'transactions', docSnap.id))));
+        
         // Delete the goal itself
         const gRef = doc(db, 'users', currentUser.uid, 'goals', goalId);
         await deleteDoc(gRef);
@@ -863,9 +861,24 @@ export default function App() {
   const handleLeaveFamily = async () => {
     if (!currentUser || !familyData) return;
     try {
-      // Remove self from family members subcollection
-      const memberRef = doc(db, 'families', familyData.id, 'members', currentUser.uid);
-      await deleteDoc(memberRef);
+      const myMemberRecord = familyData.members.find(m => m.id === currentUser.uid);
+      const isAdmin = myMemberRecord?.role === 'admin';
+
+      if (isAdmin) {
+        // Owner deleting the whole family
+        // Delete all members FIRST
+        const memSnap = await getDocs(collection(db, 'families', familyData.id, 'members'));
+        await Promise.all(memSnap.docs.map(d => deleteDoc(doc(db, 'families', familyData.id, 'members', d.id))));
+        
+        // Delete the family doc itself
+        const fRef = doc(db, 'families', familyData.id);
+        await deleteDoc(fRef);
+      } else {
+        // Just remove self from family members subcollection
+        const memberRef = doc(db, 'families', familyData.id, 'members', currentUser.uid);
+        await deleteDoc(memberRef);
+      }
+      
       // Update user doc
       const uRef = doc(db, 'users', currentUser.uid);
       await updateDoc(uRef, { familyId: null, isFamilyMode: false });
@@ -873,12 +886,17 @@ export default function App() {
       setFamilyData(null);
       setIsFamilyMode(false);
       setIsSettingsOpen(false);
-      setRewardMessage('Has abandonado la familia');
+      
+      if (isAdmin) {
+        setRewardMessage('Has eliminado el grupo familiar');
+      } else {
+        setRewardMessage('Has abandonado la familia');
+      }
       setShowRewardNotification(true);
       setTimeout(() => setShowRewardNotification(false), 2000);
     } catch (e) {
       console.error(e);
-      alert('Error abandonando el grupo familiar.');
+      alert('Error abandonando/eliminando el grupo familiar.');
     }
   };
 

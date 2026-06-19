@@ -221,7 +221,7 @@ service cloud.firestore {
       allow update: if (isSignedIn() && isValidId(familyId) && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId)) 
           && isValidFamilyUpdate(incoming()) 
           && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'inviteCode']));
-      allow delete: if false;
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
 
       match /members/{memberId} {
          allow read, list: if isSignedIn();
@@ -229,7 +229,7 @@ service cloud.firestore {
          allow update: if (isSignedIn() && isValidId(memberId) && (memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid)
             && isValidFamilyMemberUpdate(incoming())
             && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'avatarUrl']));
-         allow delete: if isSignedIn() && get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid;
+         allow delete: if isSignedIn() && (memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid);
       }
 
       match /transactions/{transactionId} {

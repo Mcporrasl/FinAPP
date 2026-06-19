@@ -127,14 +127,14 @@ export function SettingsModal({
               <button
                 type="button"
                 onClick={() => {
-                  if(window.confirm('¿Estás seguro de abandonar la familia? Dejarás de ver los movimientos familiares y volverás a tu billetera personal.')) {
+                  if(window.confirm('¿Estás seguro de abandonar o eliminar esta familia? Perderás acceso a los movimientos familiares.')) {
                     onLeaveFamily();
                   }
                 }}
                 className="w-full bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 py-3 rounded-lg font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-2"
               >
                 <span className="material-symbols-outlined text-[16px]">group_remove</span>
-                Abandonar Familia
+                Abandonar / Eliminar Familia
               </button>
             </div>
           )}
