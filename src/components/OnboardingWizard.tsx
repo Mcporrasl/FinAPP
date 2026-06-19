@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Transaction } from '../types';
+import { numberFormatter } from '../utils/format';
 
 interface OnboardingWizardProps {
   userName: string;
@@ -62,7 +63,7 @@ export function OnboardingWizard({ userName, onComplete }: OnboardingWizardProps
       value: incomeStr,
       onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value.replace(/\D/g, '');
-        const formatted = val ? new Intl.NumberFormat('es-CO').format(parseInt(val, 10)) : '';
+        const formatted = val ? numberFormatter.format(parseInt(val, 10)) : '';
         setIncomeStr(formatted);
       },
       placeholder: 'Ej: 2.000.000'
@@ -75,7 +76,7 @@ export function OnboardingWizard({ userName, onComplete }: OnboardingWizardProps
       value: needsStr,
       onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value.replace(/\D/g, '');
-        const formatted = val ? new Intl.NumberFormat('es-CO').format(parseInt(val, 10)) : '';
+        const formatted = val ? numberFormatter.format(parseInt(val, 10)) : '';
         setNeedsStr(formatted);
       },
       placeholder: 'Ej: 1.000.000'

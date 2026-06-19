@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Transaction, Goal, FamilyData, CategoryType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryAnalysisModal } from './CategoryAnalysisModal';
+import { currencyFormatter } from '../utils/format';
 
 function CopyInviteButton({ inviteCode }: { inviteCode: string }) {
   const [copied, setCopied] = useState(false);
@@ -55,10 +56,7 @@ export function HomeTab({
   const avatarSeeds = ['Jack', 'Lily', 'Max', 'Luna', 'Oliver', 'Molly', 'Leo', 'Bella', 'Charlie', 'Lucy', 'Felix', 'Chloe'];
 
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'decimal',
-      maximumFractionDigits: 0
-    }).format(val);
+    return currencyFormatter.format(val);
   };
 
   // Calculate distributions based on current month (or all time for simplicity)

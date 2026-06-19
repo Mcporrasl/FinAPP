@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryType, Transaction } from '../types';
+import { currencyFormatter } from '../utils/format';
 
 interface CategoryAnalysisModalProps {
   isOpen: boolean;
@@ -48,10 +49,7 @@ export function CategoryAnalysisModal({
   }
 
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'decimal',
-      maximumFractionDigits: 0
-    }).format(val);
+    return currencyFormatter.format(val);
   };
 
   const getRecommendation = () => {

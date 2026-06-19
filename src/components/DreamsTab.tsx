@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Goal, GoalType, FamilyData, Transaction } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { PiggyLogo } from './PiggyLogo';
+import { currencyFormatter } from '../utils/format';
 
 interface DreamsTabProps {
   goals: Goal[];
@@ -53,10 +54,7 @@ export function DreamsTab({
   ];
 
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'decimal',
-      maximumFractionDigits: 0
-    }).format(val);
+    return currencyFormatter.format(val);
   };
 
   const [fundModalOpen, setFundModalOpen] = useState(false);
