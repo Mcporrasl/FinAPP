@@ -15,7 +15,7 @@ import { AuthView } from './components/AuthView';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, onSnapshot, query, deleteDoc, updateDoc, getDocs, where } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, onSnapshot, query, deleteDoc, updateDoc, getDocs, where, deleteField } from 'firebase/firestore';
 
 import { 
   TabType, 
