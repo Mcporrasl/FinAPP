@@ -15,7 +15,7 @@ import { AuthView } from './components/AuthView';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, onSnapshot, query, deleteDoc, updateDoc, getDocs, where, deleteField } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, onSnapshot, query, deleteDoc, updateDoc, getDocs, where } from 'firebase/firestore';
 
 import { 
   TabType, 
@@ -860,7 +860,7 @@ export default function App() {
   const handleJoinFamily = async (code: string) => {
     if (!currentUser) return;
     try {
-      let familyId = code.toUpperCase();
+      let familyId = code.trim().toUpperCase();
       const fRef = doc(db, 'families', familyId);
       const fDoc = await getDoc(fRef);
       
@@ -951,7 +951,7 @@ export default function App() {
       
       try {
         const uRef = doc(db, 'users', currentUser.uid);
-        await updateDoc(uRef, { familyId: deleteField(), isFamilyMode: false });
+        await updateDoc(uRef, { familyId: null, isFamilyMode: false });
       } catch(e: any) { throw new Error('Error actualizando usuario: ' + e.message); }
       
       setFamilyData(null);
