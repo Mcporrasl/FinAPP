@@ -203,7 +203,7 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
             transaction.set(couponRef, { maxUses: 30, currentUses: 1, tier: 'pro_monthly' });
           } else if (code === 'PREMMC04') {
             transaction.set(couponRef, { maxUses: 50, currentUses: 1, tier: 'pro_lifetime' });
-          } else if (code === 'DEMO') {
+          } else if (code === 'DEMO' || code === 'DEMO2') {
             transaction.set(couponRef, { maxUses: 1, currentUses: 1, tier: 'pro_monthly', trialDays: 30 });
           } else {
             throw new Error("InvalidCoupon");
@@ -218,7 +218,7 @@ export function SubscriptionTab({ currentTier, userId, onUpgrade }: Subscription
         
         // Update User
         const userRef = doc(db, 'users', userId);
-        const data = couponDoc.exists() ? couponDoc.data() : { tier: code === 'PREMMC04' ? 'pro_lifetime' : (code === 'DEMO' || code === 'EMPMANUELITA' ? 'pro_monthly' : 'pro_annual'), trialDays: code === 'DEMO' ? 30 : null };
+        const data = couponDoc.exists() ? couponDoc.data() : { tier: code === 'PREMMC04' ? 'pro_lifetime' : (code === 'DEMO' || code === 'DEMO2' || code === 'EMPMANUELITA' ? 'pro_monthly' : 'pro_annual'), trialDays: (code === 'DEMO' || code === 'DEMO2') ? 30 : null };
         const tier = data.tier;
         const updateData: any = { subscriptionTier: tier };
         

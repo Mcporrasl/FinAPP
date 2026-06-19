@@ -35,9 +35,11 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activeAvatarId']) || (data.activeAvatarId is string && data.activeAvatarId.size() <= 100))
         && (!data.keys().hasAny(['isFamilyMode']) || data.isFamilyMode is bool)
         && (!data.keys().hasAny(['hasCompletedOnboarding']) || data.hasCompletedOnboarding is bool)
-        && (!data.keys().hasAny(['familyId']) || (data.familyId is string && data.familyId.size() <= 100))
+        && (!data.keys().hasAny(['familyId']) || (data.familyId == null || (data.familyId is string && data.familyId.size() <= 100)))
         && (!data.keys().hasAny(['subscriptionTier']) || (data.subscriptionTier in ['free', 'pro_monthly', 'pro_annual', 'pro_lifetime']))
-        && (!data.keys().hasAny(['subscriptionExpiresAt']) || (data.subscriptionExpiresAt == null || data.subscriptionExpiresAt is string));
+        && (!data.keys().hasAny(['subscriptionExpiresAt']) || (data.subscriptionExpiresAt == null || data.subscriptionExpiresAt is string))
+        && (!data.keys().hasAny(['fixedTransactions']) || data.fixedTransactions is list)
+        && (!data.keys().hasAny(['lastRecurrenceMonth']) || data.lastRecurrenceMonth is string);
     }
     function isValidUserUpdate(data) {
       return data.uid == existing().uid
@@ -47,9 +49,11 @@ service cloud.firestore {
         && (!data.keys().hasAny(['activeAvatarId']) || (data.activeAvatarId is string && data.activeAvatarId.size() <= 100))
         && (!data.keys().hasAny(['isFamilyMode']) || data.isFamilyMode is bool)
         && (!data.keys().hasAny(['hasCompletedOnboarding']) || data.hasCompletedOnboarding is bool)
-        && (!data.keys().hasAny(['familyId']) || (data.familyId is string && data.familyId.size() <= 100))
+        && (!data.keys().hasAny(['familyId']) || (data.familyId == null || (data.familyId is string && data.familyId.size() <= 100)))
         && (!data.keys().hasAny(['subscriptionTier']) || (data.subscriptionTier in ['free', 'pro_monthly', 'pro_annual', 'pro_lifetime']))
-        && (!data.keys().hasAny(['subscriptionExpiresAt']) || (data.subscriptionExpiresAt == null || data.subscriptionExpiresAt is string));
+        && (!data.keys().hasAny(['subscriptionExpiresAt']) || (data.subscriptionExpiresAt == null || data.subscriptionExpiresAt is string))
+        && (!data.keys().hasAny(['fixedTransactions']) || data.fixedTransactions is list)
+        && (!data.keys().hasAny(['lastRecurrenceMonth']) || data.lastRecurrenceMonth is string);
     }
 
     // --- Transaction Validation ---
@@ -191,10 +195,10 @@ service cloud.firestore {
     // --- Users Collection ---
     match /users/{userId} {
       allow read: if isSignedIn() && request.auth.uid == userId;
-      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUser(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['uid', 'name', 'currency', 'activeAvatarId', 'isFamilyMode', 'hasCompletedOnboarding', 'createdAt', 'familyId', 'subscriptionTier', 'subscriptionExpiresAt']);
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUser(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['uid', 'name', 'currency', 'activeAvatarId', 'isFamilyMode', 'hasCompletedOnboarding', 'createdAt', 'familyId', 'subscriptionTier', 'subscriptionExpiresAt', 'fixedTransactions', 'lastRecurrenceMonth']);
       allow update: if (isSignedIn() && request.auth.uid == userId && isValidId(userId) 
         && isValidUserUpdate(incoming()) 
-        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'currency', 'activeAvatarId', 'isFamilyMode', 'hasCompletedOnboarding', 'familyId', 'subscriptionTier', 'subscriptionExpiresAt']));
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'currency', 'activeAvatarId', 'isFamilyMode', 'hasCompletedOnboarding', 'familyId', 'subscriptionTier', 'subscriptionExpiresAt', 'fixedTransactions', 'lastRecurrenceMonth']));
       allow delete: if false;
 
       match /transactions/{transactionId} {
@@ -221,7 +225,7 @@ service cloud.firestore {
       allow update: if (isSignedIn() && isValidId(familyId) && (existing().ownerId == request.auth.uid || isMemberOfFamily(familyId)) 
           && isValidFamilyUpdate(incoming()) 
           && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'inviteCode']));
-      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && (existing() == null || existing().ownerId == request.auth.uid);
 
       match /members/{memberId} {
          allow read, list: if isSignedIn();
@@ -229,7 +233,7 @@ service cloud.firestore {
          allow update: if (isSignedIn() && isValidId(memberId) && (memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid)
             && isValidFamilyMemberUpdate(incoming())
             && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'avatarUrl']));
-         allow delete: if isSignedIn() && (memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid);
+         allow delete: if isSignedIn() && (existing() == null || memberId == request.auth.uid || get(/databases/$(database)/documents/families/$(familyId)).data.ownerId == request.auth.uid);
       }
 
       match /transactions/{transactionId} {
