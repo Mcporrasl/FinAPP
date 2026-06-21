@@ -1,0 +1,3 @@
+## 2024-05-18 - Missing Memoization + Multi-Pass Pattern
+**Learning:** Found an un-memoized multi-pass operation computing totals from a transaction list (`transactions.filter().reduce()` called 4 separate times on every render). Since `transactions` arrays can grow large over time, calculating this repeatedly (O(4N)) during unrelated re-renders (like opening UI modals within `HomeTab`) caused unnecessary main-thread overhead.
+**Action:** Always watch for chained `.filter().reduce()` on large collections and combine them into a single-pass `for`-loop or `.reduce()`. Crucially, wrap these derived calculations in `useMemo` so they are completely skipped during renders triggered by unrelated local state (modals, dropdowns, etc).

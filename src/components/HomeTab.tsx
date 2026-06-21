@@ -63,11 +63,33 @@ export function HomeTab({
   };
 
   // Calculate distributions based on current month (or all time for simplicity)
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-  
-  const needsTotal = transactions.filter(t => t.category === '50_NEEDS').reduce((acc, t) => acc + t.amount, 0);
-  const wantsTotal = transactions.filter(t => t.category === '30_WANTS').reduce((acc, t) => acc + t.amount, 0);
-  const savingsDebtTotal = transactions.filter(t => t.category === '20_SAVINGS').reduce((acc, t) => acc + t.amount, 0);
+  // ⚡ Bolt Optimization: Single-pass calculation memoized to avoid O(4N) per render
+  const { totalIncome, needsTotal, wantsTotal, savingsDebtTotal } = React.useMemo(() => {
+    let income = 0;
+    let needs = 0;
+    let wants = 0;
+    let savings = 0;
+
+    for (let i = 0; i < transactions.length; i++) {
+      const t = transactions[i];
+      if (t.type === 'income') {
+        income += t.amount;
+      } else if (t.category === '50_NEEDS') {
+        needs += t.amount;
+      } else if (t.category === '30_WANTS') {
+        wants += t.amount;
+      } else if (t.category === '20_SAVINGS') {
+        savings += t.amount;
+      }
+    }
+
+    return {
+      totalIncome: income,
+      needsTotal: needs,
+      wantsTotal: wants,
+      savingsDebtTotal: savings
+    };
+  }, [transactions]);
 
   const totalExpense = needsTotal + wantsTotal + savingsDebtTotal;
   const balance = totalIncome - totalExpense;
