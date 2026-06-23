@@ -679,11 +679,6 @@ export default function App() {
 
   const handleLogin = (name: string, email: string, uid: string, verified: boolean) => {
     console.log("Joined with Firebase:", name);
-    setUserName(name);
-    if (uid) {
-      const userRef = doc(db, 'users', uid);
-      setDoc(userRef, { name: name }, { merge: true }).catch(console.error);
-    }
   };
 
   const handleCompleteOnboarding = async (fixedItems: any[]) => {

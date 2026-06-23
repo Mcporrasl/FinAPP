@@ -1,24 +1,23 @@
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, browserLocalPersistence, indexedDBLocalPersistence, browserPopupRedirectResolver } from 'firebase/auth';
+import { getAuth, setPersistence, indexedDBLocalPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId); // CRITICAL: The app will break without this line
 
-let persistenceType = undefined;
+export const auth = getAuth(app);
+
+// Initialize persistence dynamically to prevent auth/argument-error inside iframe / sandboxed environments
 if (typeof window !== 'undefined') {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const isStandalone = (window.navigator as any).standalone === true || 
-                       window.matchMedia('(display-mode: standalone)').matches;
-
-  // iOS and PWA standalone modes have bugs with IndexedDB persistence in WebKit Web.app container.
-  // We force browserLocalPersistence (LocalStorage) in those environments.
-  persistenceType = (isIOS || isStandalone) ? browserLocalPersistence : [indexedDBLocalPersistence, browserLocalPersistence];
+  setPersistence(auth, indexedDBLocalPersistence)
+    .then(() => {
+      console.log('Firebase Auth IndexedDB persistence configured successfully.');
+    })
+    .catch((err) => {
+      console.warn('IndexedDB persistence not supported or blocked in this environment (e.g. iframe). Falling back to LocalStorage:', err);
+      setPersistence(auth, browserLocalPersistence).catch((e) => {
+        console.error('Failed to set LocalStorage persistence fallback:', e);
+      });
+    });
 }
-
-export const auth = initializeAuth(app, {
-  persistence: persistenceType || browserLocalPersistence,
-  popupRedirectResolver: browserPopupRedirectResolver
-});
