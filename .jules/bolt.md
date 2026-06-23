@@ -1,0 +1,3 @@
+## 2025-02-12 - [Performance] Memoize non-memoized array reductions in map loops
+**Learning:** Found O(N*M) time complexity loop bottlenecks where `.filter(…).reduce(…)` was occurring for every render inside `.map(…)` across arrays that scale upwards linearly with usage.
+**Action:** Extract recalculations from nested loops and consolidate multiple array loops into single passes (`for...of` loops without method chaining) then wrapping into `useMemo(…)` to minimize rendering overhead.
