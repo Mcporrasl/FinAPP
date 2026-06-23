@@ -42,8 +42,8 @@ service cloud.firestore {
         && (!data.keys().hasAny(['lastRecurrenceMonth']) || data.lastRecurrenceMonth is string);
     }
     function isValidUserUpdate(data) {
-      return data.uid == existing().uid
-        && data.createdAt == existing().createdAt
+      return (!('uid' in existing()) || data.uid == existing().uid)
+        && (!('createdAt' in existing()) || data.createdAt == existing().createdAt)
         && (!data.keys().hasAny(['name']) || (data.name is string && data.name.size() <= 100))
         && (!data.keys().hasAny(['currency']) || (data.currency is string && data.currency.size() <= 10))
         && (!data.keys().hasAny(['activeAvatarId']) || (data.activeAvatarId is string && data.activeAvatarId.size() <= 100))
