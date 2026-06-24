@@ -1,0 +1,3 @@
+## 2024-06-24 - React O(M*N) Re-render Loop Bottleneck
+**Learning:** In React components that render lists, performing calculations that scan a second large array inside the `.map()` method results in an O(M*N) time complexity where M is the list size and N is the array size. When these calculations do not depend on the current iteration item (e.g., calculating totals), this is extremely inefficient as the same O(N) calculation runs M times per render.
+**Action:** Always extract calculations that don't depend on loop items outside of the `.map()` block and wrap them in a `useMemo` hook, transforming the complexity from O(M*N) to O(M+N).
