@@ -1,0 +1,3 @@
+## 2024-05-24 - Avoid O(M*N) complexity in React `.map()` renders
+**Learning:** Found an anti-pattern where a multi-pass `.filter().reduce()` was happening *inside* a `.map()` render loop over a list of items (`goals`), calculating the exact same `totalIncome` and `actualSavings` on every iteration. This created O(M * N) complexity (M = goals, N = transactions) that scaled poorly.
+**Action:** Always extract array calculations that do not depend on the current iteration item out of `.map()` loops. Wrap them in `useMemo` so they're calculated only once per render when the underlying data changes, reducing complexity to O(N).
