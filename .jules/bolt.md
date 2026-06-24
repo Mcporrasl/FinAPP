@@ -1,0 +1,3 @@
+## 2024-06-15 - Unmemoized array calculations block React text input renders
+**Learning:** Using multiple `.filter().reduce()` passes to calculate global data (like `totalIncome`, `needsTotal`) directly in the main render body causes those O(N) operations to run on *every* component re-render. In `HomeTab`, this means typing in the `newMemberName` text input will re-calculate thousands of transaction values on every single keystroke, causing severe UI lag.
+**Action:** Always wrap heavy global calculations in `useMemo` when local component state (like forms or toggles) exists to prevent blocking the main thread on every interaction. Furthermore, combine multiple O(N) array passes into a single O(N) `.reduce()` loop when evaluating multiple totals from the same dataset.
