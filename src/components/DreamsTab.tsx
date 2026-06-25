@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Goal, GoalType, FamilyData, Transaction } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { PiggyLogo } from './PiggyLogo';
@@ -61,6 +61,20 @@ export function DreamsTab({
       maximumFractionDigits: 0
     }).format(val);
   };
+
+  // ⚡ Bolt: Extract shared aggregations out of O(M*N) mapping loops
+  const { totalIncome, actualSavings } = useMemo(() => {
+    let inc = 0;
+    let sav = 0;
+    if (transactions) {
+      for (let i = 0; i < transactions.length; i++) {
+        const t = transactions[i];
+        if (t.type === 'income') inc += t.amount;
+        else if (t.category === '20_SAVINGS') sav += t.amount;
+      }
+    }
+    return { totalIncome: inc, actualSavings: sav };
+  }, [transactions]);
 
   const [fundModalOpen, setFundModalOpen] = useState(false);
   const [goalToFund, setGoalToFund] = useState<Goal | null>(null);
@@ -163,8 +177,6 @@ export function DreamsTab({
           const pct = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
           const isFunded = goal.currentAmount >= goal.targetAmount;
           
-          const totalIncome = transactions?.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0) || 0;
-          const actualSavings = transactions?.filter(t => t.category === '20_SAVINGS').reduce((acc, t) => acc + t.amount, 0) || 0;
           const idealSavings = totalIncome * 0.2;
           const projectedMonthlySavings = Math.max(idealSavings, actualSavings);
           const isUsingActualSavings = actualSavings > idealSavings;
@@ -451,11 +463,7 @@ export function DreamsTab({
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex justify-between">
                     <span>Monto del Abono (COP)</span>
-                    <span className="text-indigo-500 font-bold">Disponible: ${(() => {
-                      const totalInc = transactions?.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0) || 0;
-                      const savDebt = transactions?.filter(t => t.category === '20_SAVINGS').reduce((acc, t) => acc + t.amount, 0) || 0;
-                      return new Intl.NumberFormat('es-CO').format(Math.max(0, (totalInc * 0.2) - savDebt));
-                    })()}</span>
+                    <span className="text-indigo-500 font-bold">Disponible: ${new Intl.NumberFormat('es-CO').format(Math.max(0, (totalIncome * 0.2) - actualSavings))}</span>
                   </label>
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-slate-400 font-bold">$</span>
