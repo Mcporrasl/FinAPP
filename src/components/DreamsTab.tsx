@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Goal, GoalType, FamilyData, Transaction } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { PiggyLogo } from './PiggyLogo';
@@ -28,6 +28,20 @@ export function DreamsTab({
   const [newType, setNewType] = useState<GoalType>('DEBT');
   const [newIcon, setNewIcon] = useState('credit_card_off');
   const [deleteConfirmGoalId, setDeleteConfirmGoalId] = useState<string | null>(null);
+
+  // OPTIMIZATION: Memoize transaction totals outside of the goals mapping loop
+  // This turns O(M*N) performance into O(M) where N is goals length and M is transactions length
+  const { totalIncome, actualSavings } = useMemo(() => {
+    let income = 0;
+    let savings = 0;
+    if (transactions) {
+      for (const t of transactions) {
+        if (t.type === 'income') income += t.amount;
+        else if (t.category === '20_SAVINGS') savings += t.amount;
+      }
+    }
+    return { totalIncome: income, actualSavings: savings };
+  }, [transactions]);
 
   const [selectedMemberId, setSelectedMemberId] = useState<string>(() => {
     if (familyData && familyData.members.length > 0) {
@@ -163,8 +177,6 @@ export function DreamsTab({
           const pct = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
           const isFunded = goal.currentAmount >= goal.targetAmount;
           
-          const totalIncome = transactions?.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0) || 0;
-          const actualSavings = transactions?.filter(t => t.category === '20_SAVINGS').reduce((acc, t) => acc + t.amount, 0) || 0;
           const idealSavings = totalIncome * 0.2;
           const projectedMonthlySavings = Math.max(idealSavings, actualSavings);
           const isUsingActualSavings = actualSavings > idealSavings;
@@ -452,9 +464,7 @@ export function DreamsTab({
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex justify-between">
                     <span>Monto del Abono (COP)</span>
                     <span className="text-indigo-500 font-bold">Disponible: ${(() => {
-                      const totalInc = transactions?.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0) || 0;
-                      const savDebt = transactions?.filter(t => t.category === '20_SAVINGS').reduce((acc, t) => acc + t.amount, 0) || 0;
-                      return new Intl.NumberFormat('es-CO').format(Math.max(0, (totalInc * 0.2) - savDebt));
+                      return new Intl.NumberFormat('es-CO').format(Math.max(0, (totalIncome * 0.2) - actualSavings));
                     })()}</span>
                   </label>
                   <div className="relative flex items-center">
