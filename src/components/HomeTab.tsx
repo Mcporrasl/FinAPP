@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Transaction, Goal, FamilyData, CategoryType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryAnalysisModal } from './CategoryAnalysisModal';
@@ -63,11 +63,24 @@ export function HomeTab({
   };
 
   // Calculate distributions based on current month (or all time for simplicity)
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-  
-  const needsTotal = transactions.filter(t => t.category === '50_NEEDS').reduce((acc, t) => acc + t.amount, 0);
-  const wantsTotal = transactions.filter(t => t.category === '30_WANTS').reduce((acc, t) => acc + t.amount, 0);
-  const savingsDebtTotal = transactions.filter(t => t.category === '20_SAVINGS').reduce((acc, t) => acc + t.amount, 0);
+  // Optimize: single pass to compute totalIncome and category totals
+  const { totalIncome, needsTotal, wantsTotal, savingsDebtTotal } = useMemo(() => {
+    return transactions.reduce(
+      (acc, t) => {
+        if (t.type === 'income') {
+          acc.totalIncome += t.amount;
+        } else if (t.category === '50_NEEDS') {
+          acc.needsTotal += t.amount;
+        } else if (t.category === '30_WANTS') {
+          acc.wantsTotal += t.amount;
+        } else if (t.category === '20_SAVINGS') {
+          acc.savingsDebtTotal += t.amount;
+        }
+        return acc;
+      },
+      { totalIncome: 0, needsTotal: 0, wantsTotal: 0, savingsDebtTotal: 0 }
+    );
+  }, [transactions]);
 
   const totalExpense = needsTotal + wantsTotal + savingsDebtTotal;
   const balance = totalIncome - totalExpense;
