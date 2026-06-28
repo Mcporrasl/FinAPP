@@ -1,0 +1,3 @@
+## 2024-10-18 - [Combine un-memoized multi-pass array operations]
+**Learning:** In React components that render lists or recalculate derived state often (like `HomeTab.tsx` and `DreamsTab.tsx`), chaining multiple `.filter().reduce()` operations can cause significant render overhead due to O(M*N) complexity, especially if they are re-evaluated on every render.
+**Action:** Always watch for multi-pass array operations. When finding them, combine them into single-pass `.reduce()` loops and wrap the result in `useMemo` so that they only recalculate when dependencies change. This reduces React render overhead and minimizes the performance footprint of derived state calculations.
